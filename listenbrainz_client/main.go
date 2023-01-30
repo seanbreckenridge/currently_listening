@@ -126,7 +126,7 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 
 		// if no song is currently playing and we have a currently playing song, send a request to the server to clear it
 		if listenbrainzResponse.NoSongPlaying() && currentlyPlaying != nil {
-			debugPrint("No song currently playing, clearing currently playing song")
+			fmt.Println("No song currently playing, clearing currently playing song")
 			err = serverRequest(currentlyPlaying, "clear-playing")
 			if err != nil {
 				log.Fatalf("Error clearing currently playing song: %s\n", err.Error())
@@ -142,12 +142,12 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 			// no currently playing song, should update
 			if currentlyPlaying == nil {
 				update = true
-				debugPrint(fmt.Sprintf("No song currently playing, setting to %+v", listenbrainzCur.TrackMetadata))
+				fmt.Printf("No song currently playing, setting to %+v\n", listenbrainzCur.TrackMetadata)
 			} else {
 				// check if song has changed
 				if currentlyPlaying.ListenChanged(listenbrainzCur) {
 					update = true
-					debugPrint(fmt.Sprintf("Song changed, setting to %+v", listenbrainzCur.TrackMetadata))
+					fmt.Printf("Song changed, setting to %+v\n", listenbrainzCur.TrackMetadata)
 				} else {
 					debugPrint("Song has not changed, skipping")
 				}
