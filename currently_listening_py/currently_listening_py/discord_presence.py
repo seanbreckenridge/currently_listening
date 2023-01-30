@@ -62,17 +62,20 @@ async def set_discord_presence_loop(server_url: str, client_id: str):
             if current_state == state.data:
                 logger.debug("Song is playing, but no change in state")
                 continue
-            current_state = state.data
             logger.debug("Song is playing, updating presence")
             kwargs = {}
+            # TODO: add a lock here to prevent duplicate updates?
             await RPC.update(
                 state=state.data.song.describe(),
                 **kwargs,
             )
+            # update local state after successful update
+            current_state = state.data
         else:
             if current_state is not None:
                 logger.debug("Song is not playing, clearing presence")
-                current_state = None
                 await RPC.clear()
+                # update local state after successful update
+                current_state = None
             else:
                 logger.debug("Song is not playing, but no change in state")
