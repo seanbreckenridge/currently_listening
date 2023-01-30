@@ -51,6 +51,25 @@ def server(server_url: str, port: int) -> None:
     assert server_password is not None
     run_server(remote_server=server_url, port=port, server_password=server_password)
 
+@main.command(short_help="set currently playing on discord")
+@click.option(
+    "--server-url",
+    default="ws://localhost:3030/ws",
+    help="remote server url",
+    show_default=True,
+)
+@click.option(
+    "-d",
+    "--discord-client-id",
+    envvar="PRESENCE_CLIENT_ID",
+    help="Discord client id for setting my presence",
+)
+def discord_presence(server_url: str, discord_client_id: str) -> None:
+    from .discord_presence import set_discord_presence_loop
+
+    asyncio.run(set_discord_presence_loop(server_url, discord_client_id))
+
+
 
 if __name__ == "__main__":
     main(prog_name="currently_listening_py")

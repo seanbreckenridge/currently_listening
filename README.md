@@ -25,4 +25,12 @@ I have [some react code](https://github.com/seanbreckenridge/glue/blob/9ecb067f5
 
 ![demo sean.fish image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/demo.png?raw=true)
 
+I also use this to set my discord presence, like:
+
+`python3 -m currently_listening_py discord-presence --server-url wss://sean.fish/currently_listening/ws`
+
+![demo discord image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/discord.png?raw=true)
+
+To set that up see [pypresence](https://qwertyquerty.github.io/pypresence/html/info/quickstart.html) docs to get your client ID
+
 TODO: add install/run instructions for each part
