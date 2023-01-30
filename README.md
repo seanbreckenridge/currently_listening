@@ -23,4 +23,6 @@ async with websockets.connect("ws://localhost:3030/ws") as websocket:
 
 I have [some react code](https://github.com/seanbreckenridge/glue/blob/9ecb067f500cf7e32eccee023d0d417eb2fb2383/assets/frontend/currently_listening.tsx) that connects to the server here and displays it on my website. That appears on [my website](https://sean.fish) in the bottom left if I'm currently listening to something:
 
+![demo sean.fish image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/demo.png?raw=true)
+
 TODO: add install/run instructions for each part
