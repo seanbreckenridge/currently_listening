@@ -1,0 +1,7 @@
+click>=8.0
+logzero
+fastapi
+uvicorn
+more_itertools
+mpv_history_daemon
+

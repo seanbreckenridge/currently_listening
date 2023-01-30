@@ -1,0 +1,24 @@
+A personal Websocket based currently playing web-service
+
+This has lots of parts:
+
+- `./server/main.go` [runs on Remote Server] - accepts `POST` requests from other clients, maintains the currently playing status/song data, accepts websocket connections on `/ws`
+- `./listenbrainz_client/main.go` [runs on Remote Server] - polls listenbrainz [`playing-now`](https://listenbrainz.readthedocs.io/en/latest/users/api/core.html) every few seconds to get music I may be listening to in my browser or on my phone. Sends a request to `./server/main.go` whenever it detects currently playing music. That synced to ListenBrainz with [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble&hl=en_US&gl=US) (on Android) or [WebScrobbler](https://web-scrobbler.com/) (in Browser)
+- [`mpv-history-daemon`](https://github.com/seanbreckenridge/mpv-history-daemon) with a custom `SocketData` class which intercepts calls to save metadata, sending it to a local server instead. That local server processes/filters it to music (not including any movies/tv shows Am watching with `mpv`), and then sends it up to `./server/main.go`. Those commands [both run locally on my machine and,] look like:
+  - `python3 -m mpv_history_daemon daemon /tmp/mpvsockets ~/data/mpv --socket-class-qualname 'currently_listening_py.socket_data.SocketDataServer'` to start `mpv_hsitory_daemon` with the custom `SocketDataServer` class to intercept data
+  - `python3 -m currently_listening_py server` to run the local server which processes the data
+
+To authenticate the POST requests to update data, set the `CURRENTLY_PLAYING_PASSWORD` environment variable
+
+To consume this, send a `currently-playing` message to the websocket URL, e.g.:
+
+```python
+import websockets
+
+async with websockets.connect("ws://localhost:3030/ws") as websocket:
+    await websocket.send("currently-playing")
+    response = await websocket.recv()
+    logger.info(response)
+```
+
+TODO: add install/run instructions for each part
