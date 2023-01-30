@@ -21,6 +21,6 @@ async with websockets.connect("ws://localhost:3030/ws") as websocket:
     logger.info(response)
 ```
 
-I have [some react code](https://github.com/seanbreckenridge/glue/blob/9ecb067f500cf7e32eccee023d0d417eb2fb2383/assets/frontend/currently_listening.tsx) that connects to the server here and displays it on my website
+I have [some react code](https://github.com/seanbreckenridge/glue/blob/9ecb067f500cf7e32eccee023d0d417eb2fb2383/assets/frontend/currently_listening.tsx) that connects to the server here and displays it on my website. That appears on [my website](https://sean.fish) in the bottom left if I'm currently listening to something:
 
 TODO: add install/run instructions for each part
