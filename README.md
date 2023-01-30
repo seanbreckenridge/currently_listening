@@ -8,7 +8,7 @@ This has lots of parts:
   - `python3 -m mpv_history_daemon daemon /tmp/mpvsockets ~/data/mpv --socket-class-qualname 'currently_listening_py.socket_data.SocketDataServer'` to start `mpv_hsitory_daemon` with the custom `SocketDataServer` class to intercept data
   - `python3 -m currently_listening_py server` to run the local server which processes the data
 
-To authenticate the POST requests to update data, set the `CURRENTLY_PLAYING_PASSWORD` environment variable
+To authenticate the POST requests to update data, set the `CURRENTLY_LISTENING_PASSWORD` environment variable
 
 To consume this, send a `currently-playing` message to the websocket URL, e.g.:
 

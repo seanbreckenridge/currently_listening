@@ -181,7 +181,7 @@ func main() {
 				Value:    "",
 				Usage:    "Password to authenticate setting the currently playing song",
 				Required: true,
-				EnvVars:  []string{"CURRENTLY_PLAYING_PASSWORD"},
+				EnvVars:  []string{"CURRENTLY_LISTENING_PASSWORD"},
 			},
 			&cli.StringFlag{
 				Name:     "listenbrainz-username",

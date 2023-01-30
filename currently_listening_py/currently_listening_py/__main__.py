@@ -11,7 +11,7 @@ server_password = None
 @click.group()
 @click.option(
     "--password",
-    envvar="CURRENTLY_PLAYING_PASSWORD",
+    envvar="CURRENTLY_LISTENING_PASSWORD",
     help="Password for the server",
 )
 def main(password: str) -> None:
