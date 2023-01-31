@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -eux
+set -o pipefail
+
+make
+(
+	cd ./currently_listening_py/ || exit $?
+	mypy ./currently_listening_py/
+	flake8 ./currently_listening_py/*.py
+)

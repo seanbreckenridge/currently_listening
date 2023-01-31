@@ -23,7 +23,6 @@ A personal Websocket based currently playing web server. Generally, this follows
 
 As an example, I have [some react code](https://github.com/seanbreckenridge/glue/blob/master/assets/frontend/currently_listening.tsx) that connects to the main server here and displays it on my website. That appears on [my website](https://sean.fish) in the bottom left if I'm currently listening to something:
 
-
 https://user-images.githubusercontent.com/7804791/215688320-c7adb7cb-299e-46a4-afd4-8abd9687a868.mp4
 
 I also use this to set my discord presence:
@@ -216,7 +215,11 @@ The two relevant endpoints (which both require `CURRENTLY_LISTENING_PASSWORD` as
 }
 ```
 
-`/clear-listening` which clears the current song from memory (in other words, I finished listening to the song)
+`/clear-listening` which clears the current song from memory (in other words, I finished listening to the song), with `POST` body like:
+
+```yaml
+{ "ended_at": 1675190002 }
+```
 
 Whenever either of those are hit with a `POST` request, it broadcasts to any currently connected websockets on `/ws`
 
@@ -245,10 +248,10 @@ Some basic python to do the same:
 
 ```python
 import asyncio
-import websockets
+from websockets.client import connect
 
 async def _get_currently_playing(server_url: str) -> None:
-    async with websockets.connect(server_url) as websocket:
+    async with connect(server_url) as websocket:
         await websocket.send("currently-listening")
         print(await websocket.recv())
 

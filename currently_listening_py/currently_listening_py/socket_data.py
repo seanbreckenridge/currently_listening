@@ -24,7 +24,7 @@ from mpv_history_daemon.events import _read_event_stream, Media
 from my_feed.sources.mpv import _media_is_allowed, _has_metadata
 from python_mpv_jsonipc import MPV  # type: ignore[import]
 
-from logzero import logger
+from logzero import logger  # type: ignore[import]
 
 
 class SocketBody(BaseModel):
@@ -33,52 +33,62 @@ class SocketBody(BaseModel):
     is_playing: bool
 
 
-class SocketSend(BaseModel):
+class SetListening(BaseModel):
     title: str
     artist: str
     album: str
     started_at: int
 
 
+class ClearListening(BaseModel):
+    ended_at: int
+
+
 class SocketDataManager:
     def __init__(self, remote_server: str, server_password: str) -> None:
-        self.currently_playing: Optional[SocketSend] = None
+        self.currently_listening: Optional[SetListening] = None
         self.is_playing = False
         self.remote_server_url = remote_server
         self.server_password = server_password
 
-    def _post(self, path: str, body: SocketSend | None = None) -> None:
-        data: dict = body.dict() if body is not None else {}
-        requests.post(
+    def _post_to_server(
+        self, path: str, body: SetListening | ClearListening | None = None
+    ) -> None:
+        data: dict[str, Any] = body.dict() if body is not None else {}
+        resp = requests.post(
             f"{self.remote_server_url}/{path}",
             json=data,
             headers={"password": self.server_password},
         )
+        if resp.status_code != 200:
+            logger.error(f"Got status code {resp.status_code} from {path}: {resp.text}")
 
-    def update_currently_playing(self, body: SocketSend, is_playing: bool) -> None:
-        if not is_playing and self.is_playing:
-            logger.debug("Clearing currently listening")
-            self.currently_playing = None
-            self.is_playing = False
-            self._post(
-                path="clear-listening",
-            )
-            return
+    def update_currently_listening(
+        self, body: SetListening | ClearListening, is_playing: bool
+    ) -> None:
+        if isinstance(body, ClearListening):
+            if not is_playing and self.is_playing:
+                logger.debug("Clearing currently listening")
+                self.currently_listening = None
+                self.is_playing = False
+                self._post_to_server(
+                    path="clear-listening",
+                    body=body,
+                )
+                return
+        else:
+            if is_playing and self.currently_listening != body:
+                logger.debug(
+                    f"Setting currently listening to: {body.artist=} {body.title=} {body.album=}"
+                )
+                self.currently_listening = body
+                self.is_playing = True
+                self._post_to_server(
+                    path="set-listening",
+                    body=body,
+                )
 
-        if is_playing and (
-            self.currently_playing is None or self.currently_playing != body
-        ):
-            logger.debug(
-                f"Setting currently playing to: {body.artist=} {body.title=} {body.album=}"
-            )
-            self.currently_playing = body
-            self.is_playing = True
-            self._post(
-                path="set-listening",
-                body=body,
-            )
-
-    def process_currently_playing(self, body: SocketBody) -> None:
+    def process_currently_listening(self, body: SocketBody) -> None:
         # allow_if_playing_for=0 means every song is allowed, since
         # current time is always larger than the mpv start time
         data: List[Media] = list(
@@ -101,13 +111,19 @@ class SocketDataManager:
 
         title, album, artist = metadata
 
-        sendbody = SocketSend(
-            title=title,
-            artist=artist,
-            album=album,
-            started_at=int(current.start_time.timestamp()),
-        )
-        self.update_currently_playing(
+        sendbody: SetListening | ClearListening
+        if body.is_playing:
+            sendbody = SetListening(
+                title=title,
+                artist=artist,
+                album=album,
+                started_at=int(current.start_time.timestamp()),
+            )
+        else:
+            sendbody = ClearListening(
+                ended_at=int(current.start_time.timestamp()),
+            )
+        self.update_currently_listening(
             body=sendbody,
             is_playing=body.is_playing,
         )
@@ -121,14 +137,13 @@ def create_manager(remote_server: str, server_password: str) -> None:
     manager = SocketDataManager(remote_server, server_password)
 
 
-@staticmethod
 def create_router() -> APIRouter:
     router = APIRouter()
 
     @router.post("/socket_data")
     def _socket_data(body: SocketBody) -> None:
         assert manager is not None
-        manager.process_currently_playing(body)
+        manager.process_currently_listening(body)
 
     return router
 
@@ -150,7 +165,9 @@ class SocketDataServer(SocketData):
         data_dir: str,
         write_period: Optional[int] = None,
     ):
-        self.port = int(os.environ.get("MPV_CURRENTLY_PLAYING_LOCAL_SERVER_PORT", 3040))
+        self.port = int(
+            os.environ.get("MPV_CURRENTLY_LISTENING_LOCAL_SERVER_PORT", 3040)
+        )
         self._started = False
         super().__init__(socket, socket_loc, data_dir, write_period)
 
@@ -181,16 +198,14 @@ class SocketDataServer(SocketData):
         ), f"Expected bool, got {type(is_paused)} {is_paused=}"
         resp = requests.post(
             f"http://localhost:{self.port}/socket_data",
-            json={
-                "events": self.events,
-                "filename": f"{self.socket_time}.json",
-                "is_playing": not is_paused,
-            },
+            json=SocketBody(
+                events=self.events,
+                filename=f"{self.socket_time}.json",
+                is_playing=not is_paused,
+            ).dict(),
         )
         if resp.status_code != 200:
-            logger.error(
-                f"Failed to send data: {resp.status_code} {resp.json()}", exc_info=True
-            )
+            logger.error(f"Failed to send data: {resp.status_code} {resp.text}")
 
     def store_file_metadata(self) -> None:
         super().store_file_metadata()

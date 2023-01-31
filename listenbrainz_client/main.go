@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/seanbreckenridge/currently_listening"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"
@@ -11,13 +12,6 @@ import (
 	"os"
 	"time"
 )
-
-type CurrentlyPlaying struct {
-	Artist    string `json:"artist"`
-	Album     string `json:"album"`
-	Title     string `json:"title"`
-	StartedAt int    `json:"started_at"`
-}
 
 type ListenBrainzListen struct {
 	TrackMetadata struct {
@@ -27,7 +21,7 @@ type ListenBrainzListen struct {
 	} `json:"track_metadata"`
 }
 
-func (c *CurrentlyPlaying) ListenChanged(l *ListenBrainzListen) bool {
+func ListenChanged(c *currently_listening.SetListening, l *ListenBrainzListen) bool {
 	return c.Artist != l.TrackMetadata.Artist_name && c.Album != l.TrackMetadata.Release_name && c.Title != l.TrackMetadata.Track_name
 }
 
@@ -57,7 +51,7 @@ func (p *ListenBrainzResponse) CurrentlyPlaying() *ListenBrainzListen {
 
 func pollListenbrainz(username string, password string, serverUrl string, debug bool, pollInterval int) {
 	url := fmt.Sprintf("https://api.listenbrainz.org/1/user/%s/playing-now", username)
-	var currentlyPlaying *CurrentlyPlaying
+	var currentlyPlaying *currently_listening.SetListening
 
 	debugPrint := func(msg string) {
 		if debug {
@@ -88,7 +82,7 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 			log.Fatalf("Error sending %s to server: %s\n", path, err.Error())
 		}
 		if resp.StatusCode != 200 {
-			log.Fatalf("Error sending %s to server: %s\n", path, resp.Status)
+			fmt.Fprintf(os.Stderr, "Error sending %s to server: %s\n", path, resp.Status)
 		}
 		defer resp.Body.Close()
 		serverResp, err := ioutil.ReadAll(resp.Body)
@@ -132,7 +126,9 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 		// if no song is currently playing and we have a currently playing song, send a request to the server to clear it
 		if listenbrainzResponse.NoSongPlaying() && currentlyPlaying != nil {
 			fmt.Println("No song currently playing, clearing currently playing song")
-			err = serverRequest(nil, "clear-listening")
+			err = serverRequest(currently_listening.ClearListening{
+				EndedAt: time.Now().Unix(),
+			}, "clear-listening")
 			if err != nil {
 				log.Fatalf("Error clearing currently playing song: %s\n", err.Error())
 			}
@@ -142,15 +138,15 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 		}
 
 		if listenbrainzCur := listenbrainzResponse.CurrentlyPlaying(); listenbrainzCur != nil {
+			update := false // if we should send a request
 			// a song is currently playing
-			update := false
 			// no currently playing song, should update
 			if currentlyPlaying == nil {
 				update = true
 				fmt.Printf("No song currently playing, setting to %+v\n", listenbrainzCur.TrackMetadata)
 			} else {
 				// check if song has changed
-				if currentlyPlaying.ListenChanged(listenbrainzCur) {
+				if ListenChanged(currentlyPlaying, listenbrainzCur) {
 					update = true
 					fmt.Printf("Song changed, setting to %+v\n", listenbrainzCur.TrackMetadata)
 				} else {
@@ -158,15 +154,15 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 				}
 			}
 			if update {
-				currentlyPlaying = &CurrentlyPlaying{
+				currentlyPlaying = &currently_listening.SetListening{
 					Artist:    listenbrainzCur.TrackMetadata.Artist_name,
 					Album:     listenbrainzCur.TrackMetadata.Release_name,
 					Title:     listenbrainzCur.TrackMetadata.Track_name,
-					StartedAt: int(time.Now().Unix()),
+					StartedAt: time.Now().Unix(),
 				}
 
 				// send currently playing song to server
-				err = serverRequest(currentlyPlaying, "set-listening")
+				err = serverRequest(&currentlyPlaying, "set-listening")
 				if err != nil {
 					log.Fatalf("Error setting currently playing song: %s\n", err.Error())
 				}

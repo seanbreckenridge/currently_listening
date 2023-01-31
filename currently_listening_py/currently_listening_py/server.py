@@ -1,4 +1,4 @@
-import uvicorn
+import uvicorn  # type: ignore[import]
 from fastapi import FastAPI
 
 
@@ -9,7 +9,7 @@ def server(
     app = FastAPI()
 
     @app.get("/ping")
-    def ping():
+    def _ping() -> str:
         return "pong"
 
     from .socket_data import create_router, create_manager

@@ -1,14 +1,16 @@
+from __future__ import annotations
 import asyncio
 import json
 import time
 from typing import AsyncGenerator, Optional
 from asyncio import sleep
 
-import websockets
-from logzero import logger
+from websockets.client import connect
+from websockets.exceptions import ConnectionClosed
+from logzero import logger  # type: ignore[import]
 from pydantic import BaseModel
-from pypresence import AioPresence
-from aiostream import stream
+from pypresence import AioPresence  # type: ignore[import]
+from aiostream import stream  # type: ignore[import]
 
 
 class Song(BaseModel):
@@ -44,7 +46,7 @@ async def get_currently_playing(
 ) -> AsyncGenerator[Payload, None]:
     # if were not polling, we want to send the message right away
     first: bool = poll_interval is None
-    async for websocket in websockets.connect(server_url):
+    async for websocket in connect(server_url):
         try:
             if first:
                 logger.debug("first loop; sending currently-listening message")
@@ -55,10 +57,8 @@ async def get_currently_playing(
                 logger.debug("polling server for currently-listening...")
                 await websocket.send("currently-listening")
             response = await websocket.recv()
-            response = json.loads(response)
-            response = Payload(**response)
-            yield response
-        except websockets.ConnectionClosed:
+            yield Payload(**json.loads(response))
+        except ConnectionClosed:
             logger.debug("Connection closed, reconnecting")
             await sleep(5)
             first = True
@@ -89,36 +89,36 @@ class SocketWithPoll:
         self.server_url = server_url
         self.poll_interval = 180
 
-        self.combined = stream.merge(
+        self._combined = stream.merge(
             stream.iterate(get_currently_playing(server_url, poll_interval=180)),
             stream.iterate(get_currently_playing(server_url)),
         )
 
-        self.items = asyncio.LifoQueue()
-        self.lock = asyncio.Lock()
+        self._items: asyncio.LifoQueue[Payload] = asyncio.LifoQueue()
+        self._lock = asyncio.Lock()
         self._websocket_task = asyncio.create_task(self.yield_iterator_to_queue())
 
-    async def yield_iterator_to_queue(self):
+    async def yield_iterator_to_queue(self) -> None:
         """
         whenever payloads are recieved from the websocket,
         asynchronously add them to this queue
         """
 
-        async with self.combined.stream() as streamer:
+        async with self._combined.stream() as streamer:
             async for item in streamer:
-                async with self.lock:
+                async with self._lock:
                     logger.debug(
-                        f"adding {item} to queue, new size is {self.items.qsize() + 1}"
+                        f"adding {item} to queue, new size is {self._items.qsize() + 1}"
                     )
-                    await self.items.put(item)
+                    await self._items.put(item)
 
-    def __aiter__(self):
+    def __aiter__(self) -> SocketWithPoll:
         return self
 
     async def __anext__(self) -> Payload | object:
         # if empty, we block on the self.combined iterator
         # which returns an item when its available from the websocket
-        if self.items.empty():
+        if self._items.empty():
             # if there are no items from the websocket, spin until there are
             # returning a sentinel value to indicate that we should wait
             await sleep(1)
@@ -126,27 +126,27 @@ class SocketWithPoll:
         else:
             # if not empty, we only want the latest item, not any others that may have
             # accumulated while we were waiting for discord rate limit
-            async with self.lock:
-                next_item = self.items.get_nowait()
-                self.items.task_done()
+            async with self._lock:
+                next_item = self._items.get_nowait()
+                self._items.task_done()  # let the queue know we're done with this task
                 logger.info(
-                    f"returning {next_item} from queue, discarding {self.items.qsize()} other items"
+                    f"returning {next_item} from queue, discarding {self._items.qsize()} other items"
                 )
 
                 # do this in a lock so that new items from the websocket
                 # arent added while we are clearing the queue
 
                 # empty rest of queue - no stdlib function to do this...?
-                for _ in range(self.items.qsize()):
-                    self.items.get_nowait()
-                    self.items.task_done()
+                for _ in range(self._items.qsize()):
+                    self._items.get_nowait()
+                    self._items.task_done()
 
                 return next_item
 
 
 async def set_discord_presence_loop(
     server_url: str, client_id: str, discord_rpc_wait_time: int = 20
-):
+) -> None:
     RPC = AioPresence(client_id)
     await RPC.connect()
     current_state = None
@@ -168,7 +168,7 @@ async def set_discord_presence_loop(
         # from the websocket queue. we wait first since otherwise new items may
         # accumulate while we are waiting for the rate limit
         await rate_limit()
-        state = await socket.__anext__()
+        state = await anext(socket)
         if state == SENTINEL:
             # logger.debug("No new items from websocket, waiting")
             continue

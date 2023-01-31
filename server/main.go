@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/olahol/melody"
+	"github.com/seanbreckenridge/currently_listening"
 	"github.com/urfave/cli/v2"
 	"log"
 	"net/http"
@@ -11,17 +12,9 @@ import (
 	"sync"
 )
 
-// struct for setting the currently playing song
-type CurrentlyPlaying struct {
-	Artist    string `json:"artist"`
-	Album     string `json:"album"`
-	Title     string `json:"title"`
-	StartedAt int    `json:"started_at"`
-}
-
 type CurrentlyPlayingResponse struct {
-	Song    *CurrentlyPlaying `json:"song"`
-	Playing bool              `json:"playing"`
+	Song    *currently_listening.SetListening `json:"song"`
+	Playing bool                              `json:"playing"`
 }
 
 type WebsocketResponse struct {
@@ -42,7 +35,8 @@ func server(port int, password string) {
 	lock := sync.RWMutex{}
 
 	// global state
-	var currentlyPlayingSong *CurrentlyPlaying
+	var currentlyPlayingSong *currently_listening.SetListening
+	var currentTimeStamp *int64
 	var isCurrentlyPlaying bool
 
 	currentlyPlayingJSON := func() ([]byte, error) {
@@ -118,7 +112,7 @@ func server(port int, password string) {
 		}
 
 		// parse body to CurrentlyPlaying
-		var cur CurrentlyPlaying
+		var cur currently_listening.SetListening
 		err := json.NewDecoder(r.Body).Decode(&cur)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -126,8 +120,8 @@ func server(port int, password string) {
 			return
 		}
 
-		if currentlyPlayingSong != nil && cur.StartedAt < currentlyPlayingSong.StartedAt {
-			msg := "cannot set currently playing song to a song that started before the currently playing song"
+		if currentlyPlayingSong != nil && currentTimeStamp != nil && cur.StartedAt < *currentTimeStamp {
+			msg := fmt.Sprintf("cannot set currently playing song, started before latest known timestamp (started at %d, latest timestamp %d)", cur.StartedAt, *currentTimeStamp)
 			fmt.Println(msg)
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(msg))
@@ -137,6 +131,7 @@ func server(port int, password string) {
 		// set currently playing
 		lock.Lock()
 		currentlyPlayingSong = &cur
+		currentTimeStamp = &cur.StartedAt
 		isCurrentlyPlaying = true
 		lock.Unlock()
 
@@ -157,9 +152,28 @@ func server(port int, password string) {
 			return
 		}
 
+		var cur currently_listening.ClearListening
+		err := json.NewDecoder(r.Body).Decode(&cur)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("error parsing JSON body"))
+			return
+		}
+
+		if currentTimeStamp != nil {
+			if cur.EndedAt < *currentTimeStamp {
+				msg := fmt.Sprintf("cannot clear currently playing song, started before latest known timestamp (started at %d, latest timestamp %d)", cur.EndedAt, *currentTimeStamp)
+				fmt.Println(msg)
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(msg))
+				return
+			}
+		}
+
 		// unset currently playing
 		lock.Lock()
 		currentlyPlayingSong = nil
+		currentTimeStamp = &cur.EndedAt
 		isCurrentlyPlaying = false
 		lock.Unlock()
 

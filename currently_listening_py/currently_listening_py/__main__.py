@@ -2,7 +2,6 @@ import json
 import asyncio
 
 import click
-from logzero import logger
 
 from .server import server as run_server
 
@@ -21,9 +20,9 @@ def main(password: str) -> None:
 
 
 async def _get_currently_playing(server_url: str) -> None:
-    import websockets  # type: ignore[import]
+    from websockets.client import connect
 
-    async with websockets.connect(server_url) as websocket:
+    async with connect(server_url) as websocket:
         await websocket.send("currently-listening")
         response = json.loads(await websocket.recv())
         click.echo(json.dumps(response, indent=2))
