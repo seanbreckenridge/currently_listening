@@ -192,7 +192,7 @@ Then, run the `mpv_history_daemon` with the custom `SocketDataServer` class inst
 
 `mpv_history_daemon_restart ~/data/mpv --socket-class-qualname 'currently_listening_py.socket_data.SocketDataServer'`
 
-That still saves all the data to ~/data/mpv, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
+That still saves all the data to `~/data/mpv`, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
 
 ### discord presence
 
