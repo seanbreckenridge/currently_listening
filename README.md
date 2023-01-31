@@ -202,7 +202,7 @@ To comply with the discord API rate limit, this only updates to the most recent 
 
 The `mpv`/`listenbrainz` sources here are just the ones that are most relevant to me, the main server here can accept `POST` requests from any tool/daemon you write.
 
-The two relevant endpoints (which both require `CURRENTLY_LISTENING_PASSWORD` as a `header`):
+The two relevant endpoints (which both require `password`: `CURRENTLY_LISTENING_PASSWORD` as a header to authenticate):
 
 `/set-listening`, with a `POST` body that looks like:
 
@@ -210,7 +210,7 @@ The two relevant endpoints (which both require `CURRENTLY_LISTENING_PASSWORD` as
 {
   "artist": "artist name",
   "album": "album name", # can be empty string if no album known
-  "title": "tite/track name",
+  "title": "title/track name",
   "started_at": 1675146416, # epoch time
 }
 ```
@@ -257,4 +257,24 @@ async def _get_currently_playing(server_url: str) -> None:
 
 
 asyncio.run(_get_currently_playing("wss://..../ws")
+```
+
+or javascript:
+
+```javascript
+const websocketUrl = Deno.env.get("WEBSOCKET_URL") || "ws://localhost:3030";
+
+const ws = new WebSocket(websocketUrl);
+
+ws.onopen = () => {
+  console.log("Connected to websocket server");
+  ws.send("currently-listening");
+};
+
+ws.onmessage = (event) => {
+  console.log(
+    "Received message from websocket server:",
+    JSON.parse(event?.data ?? "{}", null, 2)
+  );
+};
 ```
