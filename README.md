@@ -188,11 +188,29 @@ That still saves all the data to `~/data/mpv`, in addition to `POST`ing the curr
 
 ### `discord-presence`
 
-To setup your client ID, see [pypresence](https://qwertyquerty.github.io/pypresence/html/info/quickstart.html) docs, and set the `PRESENCE_CLIENT_ID` with your applications `ClientID`.
+To setup your client ID, see [pypresence](https://qwertyquerty.github.io/pypresence/html/info/quickstart.html) docs, and set the `PRESENCE_CLIENT_ID` environment variable with your applications `ClientID`.
 
 This must be run on your computer which the `discord` application active to connect with RPC, e.g.:
 
 `currently_listening_py discord-presence --server-url wss://sean.fish/currently_listening/ws`
+
+```
+Usage: currently_listening_py discord-presence [OPTIONS]
+
+Options:
+  --server-url TEXT               remote server url  [default:
+                                  ws://localhost:3030/ws]
+  -d, --discord-client-id TEXT    Discord client id for setting my presence
+                                  [env var: PRESENCE_CLIENT_ID]
+  -D, --discord-rpc-wait-time INTEGER RANGE
+                                  Interval in seconds to wait between discord
+                                  rpc requests  [x>=15]
+  -p, --websocket-poll-interval INTEGER
+                                  Interval in seconds to poll the websocket
+                                  for updates, to make sure failed RPC
+                                  requests dont lead to stale presence
+  --help                          Show this message and exit.
+```
 
 To comply with the discord API rate limit, this only updates to the most recent request every ~20 seconds
 

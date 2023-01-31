@@ -12,6 +12,7 @@ server_password = None
 @click.option(
     "--password",
     envvar="CURRENTLY_LISTENING_PASSWORD",
+    show_envvar=True,
     help="Password for the server",
 )
 def main(password: str) -> None:
@@ -48,7 +49,9 @@ def print(server_url: str) -> None:
 )
 @click.option("--port", default=3040, help="local port to host on")
 def server(server_url: str, port: int) -> None:
-    assert server_password is not None
+    assert (
+        server_password is not None
+    ), "Set password with `currently_listening_py --password '...' server` or set the CURRENTLY_LISTENING_PASSWORD environment variable"
     run_server(remote_server=server_url, port=port, server_password=server_password)
 
 
@@ -63,6 +66,7 @@ def server(server_url: str, port: int) -> None:
     "-d",
     "--discord-client-id",
     envvar="PRESENCE_CLIENT_ID",
+    show_envvar=True,
     help="Discord client id for setting my presence",
 )
 @click.option(
