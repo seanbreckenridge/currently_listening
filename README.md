@@ -6,7 +6,6 @@ A personal Websocket based currently playing web server. Generally, this follows
 /**************************************************************************************/
                                        |
                                        |
-                                       |
                                        ▼
 /*********************************************************************************/
 /*                                  main server                                  */
@@ -15,13 +14,11 @@ A personal Websocket based currently playing web server. Generally, this follows
 /*********************************************************************************/
                                        |
                                        |
-                                       |
                                        ▼
        /***************************************************************/
        /* enduser/applications which consume the websocket to display */
        /*       e.g. as part of my website/discord presence           */
        /***************************************************************/
-
 ```
 
 As an example, I have [some react code](https://github.com/seanbreckenridge/glue/blob/master/assets/frontend/currently_listening.tsx) that connects to the main server here and displays it on my website. That appears on [my website](https://sean.fish) in the bottom left if I'm currently listening to something:
