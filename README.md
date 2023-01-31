@@ -60,7 +60,7 @@ Set the `CURRENTLY_LISTENING_PASSWORD` environment variable to authenticate `POS
 
 Accepts `POST` requests from other clients here to set/clear the currently playing song, and provides the `/ws` endpoint which broadcasts to other clients whenever there are changes
 
-If you want to be able to use this from other devices/have this public, you need to host this on a server somewhere public.
+If you want to be able to access the websocket from other devices/on a website, you need to host this on a server somewhere public.
 
 I do so on my server with `nginx` under the `/currently_listening` path:
 
