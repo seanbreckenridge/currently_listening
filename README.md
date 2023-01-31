@@ -47,7 +47,7 @@ go build -o currently_listening_server ./server/main.go
 cp ./currently_listening_server ~/.local/bin
 ```
 
-Run `./currently_listening_server`:
+Run `currently_listening_server`:
 
 ```
 GLOBAL OPTIONS:
@@ -93,6 +93,8 @@ cp ./listenbrainz_client_poll ~/.local/bin
 This polls the `playing-now` endpoint at [ListenBrainz](https://listenbrainz.org/) (like a open-source last-fm) every few seconds to fetch what I'm currently listening to.
 
 Whenever it detects currently playing music/music finishes playing, it sends a request to `./server/main.go`. Similar to Lastfm, ListenBrainz is updated by scrobblers, like [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble&hl=en_US&gl=US) on my phone, or [WebScrobbler](https://web-scrobbler.com/) in my browser
+
+Run `listenbrainz_client_poll`:
 
 ```
 GLOBAL OPTIONS:
