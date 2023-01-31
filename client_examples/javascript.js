@@ -1,4 +1,4 @@
-const websocketUrl = Deno.env.get("WEBSOCKET_URL") || "ws://localhost:3030";
+const websocketUrl = Deno.env.get("WEBSOCKET_URL") || "ws://localhost:3030/ws";
 
 const ws = new WebSocket(websocketUrl);
 
