@@ -23,7 +23,8 @@ A personal Websocket based currently playing web server. Generally, this follows
 
 As an example, I have [some react code](https://github.com/seanbreckenridge/glue/blob/master/assets/frontend/currently_listening.tsx) that connects to the main server here and displays it on my website. That appears on [my website](https://sean.fish) in the bottom left if I'm currently listening to something:
 
-https://user-images.githubusercontent.com/7804791/215680067-6ca15266-c620-41b5-8809-6d4a38f1f317.mp4
+
+https://user-images.githubusercontent.com/7804791/215688320-c7adb7cb-299e-46a4-afd4-8abd9687a868.mp4
 
 I also use this to set my discord presence:
 
