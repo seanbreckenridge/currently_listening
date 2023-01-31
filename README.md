@@ -31,7 +31,7 @@ I also use this to set my discord presence:
 
 ## Install
 
-Requires `python3.9+` and `go`
+Requires `python3.9+` (for local data processing/clients) and `go` (for the remote websocket servers)
 
 ### `server`
 
