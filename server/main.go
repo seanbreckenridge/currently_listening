@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-type CurrentlyPlayingResponse struct {
+type CurrentlyListeningResponse  struct {
 	Song    *currently_listening.SetListening `json:"song"`
 	Playing bool                              `json:"playing"`
 }
@@ -35,16 +35,16 @@ func server(port int, password string) {
 	lock := sync.RWMutex{}
 
 	// global state
-	var currentlyPlayingSong *currently_listening.SetListening
+	var currentlyListeningSong *currently_listening.SetListening
 	var currentTimeStamp *int64
 	var isCurrentlyPlaying bool
 
-	currentlyPlayingJSON := func() ([]byte, error) {
+	currentlyListeningJSON := func() ([]byte, error) {
 		songBytes, err := json.Marshal(
 			WebsocketResponse{
 				MsgType: "currently-listening",
-				Data: CurrentlyPlayingResponse{
-					Song:    currentlyPlayingSong,
+				Data: CurrentlyListeningResponse {
+					Song:    currentlyListeningSong,
 					Playing: isCurrentlyPlaying,
 				},
 			},
@@ -58,11 +58,11 @@ func server(port int, password string) {
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		switch string(msg) {
 		case "currently-listening":
-			if cur, err := currentlyPlayingJSON(); err == nil {
+			if cur, err := currentlyListeningJSON(); err == nil {
 				s.Write(cur)
 			} else {
-				fmt.Println("Error marshalling currently playing song to JSON")
-				s.Write([]byte("Error converting currently playing song to JSON"))
+				fmt.Println("Error marshalling currently listening song to JSON")
+				s.Write([]byte("Error converting currently listening song to JSON"))
 			}
 		case "ping":
 			jsonBytes, err := json.Marshal(
@@ -103,7 +103,7 @@ func server(port int, password string) {
 	handleError := func(w http.ResponseWriter, err error) {
 		fmt.Printf("Error: %s\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Error converting currently playing song to JSON"))
+		w.Write([]byte("Error converting currently listening song to JSON"))
 	}
 
 	http.HandleFunc("/set-listening", func(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +111,7 @@ func server(port int, password string) {
 			return
 		}
 
-		// parse body to CurrentlyPlaying
+		// parse body
 		var cur currently_listening.SetListening
 		err := json.NewDecoder(r.Body).Decode(&cur)
 		if err != nil {
@@ -120,7 +120,8 @@ func server(port int, password string) {
 			return
 		}
 
-		if currentlyPlayingSong != nil && currentTimeStamp != nil && cur.StartedAt < *currentTimeStamp {
+		// check if currently playing song is newer
+		if currentlyListeningSong != nil && currentTimeStamp != nil && cur.StartedAt < *currentTimeStamp {
 			msg := fmt.Sprintf("cannot set currently playing song, started before latest known timestamp (started at %d, latest timestamp %d)", cur.StartedAt, *currentTimeStamp)
 			fmt.Println(msg)
 			w.WriteHeader(http.StatusBadRequest)
@@ -130,16 +131,16 @@ func server(port int, password string) {
 
 		// set currently playing
 		lock.Lock()
-		currentlyPlayingSong = &cur
+		currentlyListeningSong = &cur
 		currentTimeStamp = &cur.StartedAt
 		isCurrentlyPlaying = true
 		lock.Unlock()
 
-		if sendBody, err := currentlyPlayingJSON(); err == nil {
+		if sendBody, err := currentlyListeningJSON(); err == nil {
 			// broadcast to all clients
 			m.Broadcast(sendBody)
-			// respond to client
-			msg := fmt.Sprintf("Set currently playing song to Artist: %s, Album: %s, title: %s", cur.Artist, cur.Album, cur.Title)
+			// respond to POST request
+			msg := fmt.Sprintf("Set currently playing song to Artist: '%s', Album: '%s', title: '%s'", cur.Artist, cur.Album, cur.Title)
 			fmt.Println(msg)
 			w.Write([]byte(msg))
 		} else {
@@ -152,6 +153,7 @@ func server(port int, password string) {
 			return
 		}
 
+		// parse body
 		var cur currently_listening.ClearListening
 		err := json.NewDecoder(r.Body).Decode(&cur)
 		if err != nil {
@@ -160,28 +162,27 @@ func server(port int, password string) {
 			return
 		}
 
-		if currentTimeStamp != nil {
-			if cur.EndedAt < *currentTimeStamp {
-				msg := fmt.Sprintf("cannot clear currently playing song, started before latest known timestamp (started at %d, latest timestamp %d)", cur.EndedAt, *currentTimeStamp)
-				fmt.Println(msg)
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(msg))
-				return
-			}
+		// check if clear-playing request is newer than current timestamp
+		if currentTimeStamp != nil && cur.EndedAt < *currentTimeStamp {
+			msg := fmt.Sprintf("cannot clear currently playing song, started before latest known timestamp (started at %d, latest timestamp %d)", cur.EndedAt, *currentTimeStamp)
+			fmt.Println(msg)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(msg))
+			return
 		}
 
 		// unset currently playing
 		lock.Lock()
-		currentlyPlayingSong = nil
+		currentlyListeningSong = nil
 		currentTimeStamp = &cur.EndedAt
 		isCurrentlyPlaying = false
 		lock.Unlock()
 
-		if sendBody, err := currentlyPlayingJSON(); err == nil {
+		if sendBody, err := currentlyListeningJSON(); err == nil {
 			// broadcast to all clients
 			m.Broadcast(sendBody)
-			// respond to client
-			msg := "Unset currently playing song"
+			// respond to POST request
+			msg := "Unset currently listening song"
 			fmt.Println(msg)
 			w.Write([]byte(msg))
 		} else {
@@ -207,7 +208,7 @@ func main() {
 			&cli.StringFlag{
 				Name:     "password",
 				Value:    "",
-				Usage:    "Password to authenticate setting the currently playing song",
+				Usage:    "Password to authenticate setting the currently listening song",
 				Required: true,
 				EnvVars:  []string{"CURRENTLY_LISTENING_PASSWORD"},
 			},
