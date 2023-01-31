@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-type CurrentlyListeningResponse  struct {
+type CurrentlyListeningResponse struct {
 	Song    *currently_listening.SetListening `json:"song"`
 	Playing bool                              `json:"playing"`
 }
@@ -43,7 +43,7 @@ func server(port int, password string) {
 		songBytes, err := json.Marshal(
 			WebsocketResponse{
 				MsgType: "currently-listening",
-				Data: CurrentlyListeningResponse {
+				Data: CurrentlyListeningResponse{
 					Song:    currentlyListeningSong,
 					Playing: isCurrentlyPlaying,
 				},
