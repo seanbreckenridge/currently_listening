@@ -169,7 +169,7 @@ class SocketDataServer(SocketData):
         if not is_final:
             try:
                 is_paused = self.socket.pause
-            except (ConnectionRefusedError, BrokenPipeError):
+            except (ConnectionRefusedError, BrokenPipeError, TimeoutError):
                 # is finished, so is 'paused'/done
                 is_paused = True
         else:
