@@ -76,12 +76,15 @@ async def get_currently_playing(
             yield Payload(**json.loads(response))
         except ConnectionClosed:
             logger.debug("Connection closed, reconnecting")
-            await sleep(5)
+            await sleep(3)
             first = True
             if poll_task is not None:
-                poll_task.cancel()
+                try:
+                    poll_task.cancel()
+                    await poll_task  # wait for task to finish, throw exception
+                except asyncio.CancelledError as e:
+                    logger.debug(f"poll task cancelled: {type(e)} {e}")
                 poll_task = None
-            continue
 
 
 SENTINEL = object()
