@@ -65,10 +65,36 @@ def server(server_url: str, port: int) -> None:
     envvar="PRESENCE_CLIENT_ID",
     help="Discord client id for setting my presence",
 )
-def discord_presence(server_url: str, discord_client_id: str) -> None:
+@click.option(
+    "-D",
+    "--discord-rpc-wait-time",
+    default=20,
+    type=click.IntRange(min=15),
+    help="Interval in seconds to wait between discord rpc requests",
+)
+@click.option(
+    "-p",
+    "--websocket-poll-interval",
+    default=180,
+    type=int,
+    help="Interval in seconds to poll the websocket for updates, to make sure failed RPC requests dont lead to stale presence",
+)
+def discord_presence(
+    server_url: str,
+    discord_client_id: str,
+    discord_rpc_wait_time: int,
+    websocket_poll_interval: int,
+) -> None:
     from .discord_presence import set_discord_presence_loop
 
-    asyncio.run(set_discord_presence_loop(server_url, discord_client_id))
+    asyncio.run(
+        set_discord_presence_loop(
+            server_url,
+            discord_client_id,
+            discord_rpc_wait_time=discord_rpc_wait_time,
+            websocket_poll_interval=websocket_poll_interval,
+        )
+    )
 
 
 if __name__ == "__main__":
