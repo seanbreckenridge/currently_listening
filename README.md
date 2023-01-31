@@ -195,7 +195,7 @@ This must be run on your computer which the `discord` application active to conn
 
 `currently_listening_py discord-presence --server-url wss://sean.fish/currently_listening/ws`
 
-To comply with the discord API rate limit, this only updates every ~20 seconds, so you may notice some lag if you're constantly skipping songs with `mpv`
+To comply with the discord API rate limit, this only updates to the most recent request every ~20 seconds
 
 ![demo discord image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/discord.png?raw=true)
 
