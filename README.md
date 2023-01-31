@@ -24,15 +24,11 @@ A personal Websocket based currently playing web-service. Generally, this follow
 
 ```
 
-As an example, I have [some react code](https://github.com/seanbreckenridge/glue/blob/9ecb067f500cf7e32eccee023d0d417eb2fb2383/assets/frontend/currently_listening.tsx) that connects to the main server here and displays it on my website. That appears on [my website](https://sean.fish) in the bottom left if I'm currently listening to something:
-
-![demo sean.fish image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/demo.png?raw=true)
+As an example, I have [some react code](https://github.com/seanbreckenridge/glue/blob/master/assets/frontend/currently_listening.tsx) that connects to the main server here and displays it on my website. That appears on [my website](https://sean.fish) in the bottom left if I'm currently listening to something:
 
 https://user-images.githubusercontent.com/7804791/215680067-6ca15266-c620-41b5-8809-6d4a38f1f317.mp4
 
-I also use this to set my discord presence, like:
-
-`python3 -m currently_listening_py discord-presence --server-url wss://sean.fish/currently_listening/ws`
+I also use this to set my discord presence:
 
 ![demo discord image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/discord.png?raw=true)
 
@@ -60,13 +56,13 @@ GLOBAL OPTIONS:
    --help, -h        show help
 ```
 
-Set the `CURRENTLY_LISTENING_PASSWORD` environment variable to authenticate `POST` requests:
+Set the `CURRENTLY_LISTENING_PASSWORD` environment variable to authenticate `POST` requests (so that only you can set what music you're listening to)
 
-This accepts `POST` requests from other clients here to set/clear the currently playing song, and provides the `/ws` endpoint which broadcasts to other clients whenever there are changes
+Accepts `POST` requests from other clients here to set/clear the currently playing song, and provides the `/ws` endpoint which broadcasts to other clients whenever there are changes
 
 If you want to be able to use this from other devices/have this public, you need to host this on a server somewhere public.
 
-I do so on my server with nginx under the `/currently_listening` path:
+I do so on my server with `nginx` under the `/currently_listening` path:
 
 ```conf
 location /currently_listening/ {
@@ -77,7 +73,6 @@ location /currently_listening/ {
   proxy_set_header Connection "upgrade";
   proxy_pass http://127.0.0.1:3030/;
 }
-[sean@fish-webserver /etc/nginx ] $
 ```
 
 ---
@@ -95,9 +90,9 @@ go build -o listenbrainz_client_poll ./listenbrainz_client/main.go
 cp ./listenbrainz_client_poll ~/.local/bin
 ```
 
-This polls the `playing-now` endpoint at [ListenBrainz](https://listenbrainz.org/) (like a open-source last-fm) every few seconds to fetch what I'm currently listening to
+This polls the `playing-now` endpoint at [ListenBrainz](https://listenbrainz.org/) (like a open-source last-fm) every few seconds to fetch what I'm currently listening to.
 
-Sends a request to `./server/main.go` whenever it detects currently playing music/music finishes playing. Similar to Lastfm, ListenBrainz is updated by scrobblers, like [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble&hl=en_US&gl=US) on my phone, or [WebScrobbler](https://web-scrobbler.com/) in my browser
+Whenever it detects currently playing music/music finishes playing, it sends a request to `./server/main.go`. Similar to Lastfm, ListenBrainz is updated by scrobblers, like [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble&hl=en_US&gl=US) on my phone, or [WebScrobbler](https://web-scrobbler.com/) in my browser
 
 ```
 GLOBAL OPTIONS:
@@ -113,7 +108,7 @@ This could run either on your local machine or remotely, but I prefer remotely a
 
 ### mpv_history_daemon
 
-Related:
+This requires:
 
 - <https://github.com/seanbreckenridge/mpv-history-daemon>
 - <https://github.com/seanbreckenridge/mpv-sockets>
@@ -124,37 +119,32 @@ This is a pretty complex source with lots of moving parts, so to summarize:
                                /*********************/
                                /* mpv (application) */
                                /*********************/
-
                                        |
                                        ▼
                       /****************************************/
                       /*      mpv_sockets wrapper script      */
                       /* launches mpv with unique IPC sockets */
                       /****************************************/
-
                                        |
                                        ▼
         /*********************************************************************/
         /*                       mpv_history_daemon                          */
         /* connects to active mpv IPC sockets and saves to local JSON files. */
         /*   launched with the custom SocketDataServer class installed here, */
-        /*   also sends the JSON to a local currently_listening_py server    */
+        /* this also sends the JSON to a local currently_listening_py server */
         /*********************************************************************/
-
                                        |
                                        ▼
      /*************************************************************************/
      /*              currently_listening_py server (run locally)              */
      /* uses my_feed/HPI to parse/filter the raw JSON from mpv_history_daemon */
      /*************************************************************************/
-
                                        |
                                        ▼
         /********************************************************************/
         /*                   main server (server/main.go)                   */
         /* recieves updates whenever mpv song changes/mpv is paused/resumes */
         /********************************************************************/
-
                                        |
                                        ▼
                     /*******************************************/
@@ -162,7 +152,7 @@ This is a pretty complex source with lots of moving parts, so to summarize:
                     /*******************************************/
 ```
 
-To install the python lib here:
+To install the python library/server here:
 
 ```bash
 git clone https://github.com/seanbreckenridge/currently_listening
@@ -188,13 +178,13 @@ allow_mpv_prefixes: set[str] = {
 
 To run, first start the `currently_listening_py` server, e.g.:
 
-`currently_listening_py server --server-url https://sean.fish/currently_listening`
+`currently_listening_py server --server-url https://.../currently_listening`
 
 Then, run the `mpv_history_daemon` with the custom `SocketDataServer` class installed here
 
 `mpv_history_daemon_restart ~/data/mpv --socket-class-qualname 'currently_listening_py.socket_data.SocketDataServer'`
 
-That still saves all the data to ~/data/mpv, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
+That still saves all the data to `~/data/mpv`, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
 
 ### discord presence
 
@@ -203,6 +193,8 @@ To setup your client ID, see [pypresence](https://qwertyquerty.github.io/pyprese
 This must be run on your computer which the `discord` application active to connect with RPC, e.g.:
 
 `currently_listening_py discord-presence --server-url wss://sean.fish/currently_listening/ws`
+
+To comply with the discord API rate limit, this only updates every ~20 seconds, so you may notice some lag if you're constantly skipping songs with `mpv`
 
 ![demo discord image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/discord.png?raw=true)
 
