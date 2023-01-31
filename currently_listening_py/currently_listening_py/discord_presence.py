@@ -55,8 +55,8 @@ async def get_currently_playing(
             yield response
         except websockets.ConnectionClosed:
             logger.debug("Connection closed, reconnecting")
+            await sleep(5)
             first = True
-            await sleep(60)
             continue
 
 
