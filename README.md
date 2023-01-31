@@ -28,6 +28,8 @@ As an example, I have [some react code](https://github.com/seanbreckenridge/glue
 
 ![demo sean.fish image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/demo.png?raw=true)
 
+https://user-images.githubusercontent.com/7804791/215680067-6ca15266-c620-41b5-8809-6d4a38f1f317.mp4
+
 I also use this to set my discord presence, like:
 
 `python3 -m currently_listening_py discord-presence --server-url wss://sean.fish/currently_listening/ws`
@@ -192,7 +194,7 @@ Then, run the `mpv_history_daemon` with the custom `SocketDataServer` class inst
 
 `mpv_history_daemon_restart ~/data/mpv --socket-class-qualname 'currently_listening_py.socket_data.SocketDataServer'`
 
-That still saves all the data to `~/data/mpv`, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
+That still saves all the data to ~/data/mpv, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
 
 ### discord presence
 
