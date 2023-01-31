@@ -3,8 +3,6 @@ import asyncio
 
 import click
 
-from .server import server as run_server
-
 server_password = None
 
 
@@ -52,6 +50,8 @@ def server(server_url: str, port: int) -> None:
     assert (
         server_password is not None
     ), "Set password with `currently_listening_py --password '...' server` or set the CURRENTLY_LISTENING_PASSWORD environment variable"
+    from .server import server as run_server
+
     run_server(remote_server=server_url, port=port, server_password=server_password)
 
 

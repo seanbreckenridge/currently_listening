@@ -21,7 +21,6 @@ from pydantic import BaseModel
 from fastapi import APIRouter
 from mpv_history_daemon.daemon import SocketData
 from mpv_history_daemon.events import _read_event_stream, Media
-from my_feed.sources.mpv import _media_is_allowed, _has_metadata
 from python_mpv_jsonipc import MPV  # type: ignore[import]
 
 from logzero import logger  # type: ignore[import]
@@ -89,6 +88,8 @@ class SocketDataManager:
                 )
 
     def process_currently_listening(self, body: SocketBody) -> None:
+        from my_feed.sources.mpv import _media_is_allowed, _has_metadata
+
         # allow_if_playing_for=0 means every song is allowed, since
         # current time is always larger than the mpv start time
         data: List[Media] = list(
