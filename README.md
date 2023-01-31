@@ -1,4 +1,4 @@
-A personal Websocket based currently playing web-server. Generally, this follows something like:
+A personal Websocket based currently playing web server. Generally, this follows something like:
 
 ```
 /**************************************************************************************/
@@ -201,4 +201,57 @@ To comply with the discord API rate limit, this only updates every ~20 seconds, 
 
 ### Adding new sources
 
-TODO: expand more on the `POST` body/internals how one could create a new source
+The `mpv`/`listenbrainz` sources here are just the ones that are most relevant to me, the main server here can accept `POST` requests from any tool/daemon you write.
+
+The two relevant endpoints (which both require `CURRENTLY_LISTENING_PASSWORD` as a `header`):
+
+`/set-listening`, with a `POST` body that looks like:
+
+```yaml
+{
+  "artist": "artist name",
+  "album": "album name", # can be empty string if no album known
+  "title": "tite/track name",
+  "started_at": 1675146416, # epoch time
+}
+```
+
+`/clear-listening` which clears the current song from memory (in other words, I finished listening to the song)
+
+Whenever either of those are hit with a `POST` request, it broadcasts to any currently connected websockets.
+
+`currently_listening_py` includes a `print` command which sends the `currently-playing` message to the server:
+
+`$ python3 -m currently_listening_py print --server-url 'wss://sean.fish/currently_listening/ws' | jq`
+
+```json
+{
+  "msg_type": "currently-listening",
+  "data": {
+    "song": {
+      "artist": "Kendrick Lamar",
+      "album": "To Pimp a Butterfly",
+      "title": "Momma",
+      "started_at": 1675146504
+    },
+    "playing": true
+  }
+}
+```
+
+If `playing` is `false`, `song` is `null`
+
+Some basic python to do the same:
+
+```python
+import asyncio
+import websockets
+
+async def _get_currently_playing(server_url: str) -> None:
+    async with websockets.connect(server_url) as websocket:
+        await websocket.send("currently-listening")
+        print(await websocket.recv())
+
+
+asyncio.run(_get_currently_playing("wss://..../ws")
+```

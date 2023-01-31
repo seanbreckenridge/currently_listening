@@ -1,3 +1,4 @@
+import json
 import asyncio
 
 import click
@@ -24,8 +25,8 @@ async def _get_currently_playing(server_url: str) -> None:
 
     async with websockets.connect(server_url) as websocket:
         await websocket.send("currently-listening")
-        response = await websocket.recv()
-        logger.info(response)
+        response = json.loads(await websocket.recv())
+        click.echo(json.dumps(response, indent=2))
 
 
 @click.option(
@@ -51,6 +52,7 @@ def server(server_url: str, port: int) -> None:
     assert server_password is not None
     run_server(remote_server=server_url, port=port, server_password=server_password)
 
+
 @main.command(short_help="set currently playing on discord")
 @click.option(
     "--server-url",
@@ -68,7 +70,6 @@ def discord_presence(server_url: str, discord_client_id: str) -> None:
     from .discord_presence import set_discord_presence_loop
 
     asyncio.run(set_discord_presence_loop(server_url, discord_client_id))
-
 
 
 if __name__ == "__main__":
