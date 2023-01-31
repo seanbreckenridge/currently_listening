@@ -23,7 +23,7 @@ async def _get_currently_playing(server_url: str) -> None:
     import websockets  # type: ignore[import]
 
     async with websockets.connect(server_url) as websocket:
-        await websocket.send("currently-playing")
+        await websocket.send("currently-listening")
         response = await websocket.recv()
         logger.info(response)
 

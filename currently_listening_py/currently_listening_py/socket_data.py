@@ -47,10 +47,11 @@ class SocketDataManager:
         self.remote_server_url = remote_server
         self.server_password = server_password
 
-    def _post(self, path: str, body: SocketSend) -> None:
+    def _post(self, path: str, body: SocketSend | None = None) -> None:
+        data: dict = body.dict() if body is not None else {}
         requests.post(
             f"{self.remote_server_url}/{path}",
-            json=body.dict(),
+            json=data,
             headers={"password": self.server_password},
         )
 
@@ -60,19 +61,20 @@ class SocketDataManager:
             self.currently_playing = None
             self.is_playing = False
             self._post(
-                path="clear-playing",
-                body=body,
+                path="clear-listening",
             )
             return
 
         if is_playing and (
             self.currently_playing is None or self.currently_playing != body
         ):
-            logger.debug(f"Setting currently playing to: {body.artist=} {body.title=} {body.album=}")
+            logger.debug(
+                f"Setting currently playing to: {body.artist=} {body.title=} {body.album=}"
+            )
             self.currently_playing = body
             self.is_playing = True
             self._post(
-                path="set-playing",
+                path="set-listening",
                 body=body,
             )
 
@@ -171,7 +173,7 @@ class SocketDataServer(SocketData):
                 # is finished, so is 'paused'/done
                 is_paused = True
         else:
-            # sort of a hack to make this set a 'clear-playing'
+            # sort of a hack to make this set a 'clear-listening'
             # event when mpv is quit
             is_paused = True
         assert isinstance(

@@ -41,7 +41,7 @@ async def get_currently_playing(
 ) -> AsyncGenerator[Payload, None]:
     async for websocket in websockets.connect(server_url):
         try:
-            await websocket.send("currently-playing")
+            await websocket.send("currently-listening")
             response = await websocket.recv()
             response = json.loads(response)
             response = Payload(**response)

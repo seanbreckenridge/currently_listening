@@ -48,7 +48,7 @@ func server(port int, password string) {
 	currentlyPlayingJSON := func() ([]byte, error) {
 		songBytes, err := json.Marshal(
 			WebsocketResponse{
-				MsgType: "currently-playing",
+				MsgType: "currently-listening",
 				Data: CurrentlyPlayingResponse{
 					Song:    currentlyPlayingSong,
 					Playing: isCurrentlyPlaying,
@@ -63,7 +63,7 @@ func server(port int, password string) {
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		switch string(msg) {
-		case "currently-playing":
+		case "currently-listening":
 			if cur, err := currentlyPlayingJSON(); err == nil {
 				s.Write(cur)
 			} else {
@@ -112,7 +112,7 @@ func server(port int, password string) {
 		w.Write([]byte("Error converting currently playing song to JSON"))
 	}
 
-	http.HandleFunc("/set-playing", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/set-listening", func(w http.ResponseWriter, r *http.Request) {
 		if !authdPost(w, r) {
 			return
 		}
@@ -144,7 +144,7 @@ func server(port int, password string) {
 		}
 	})
 
-	http.HandleFunc("/clear-playing", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/clear-listening", func(w http.ResponseWriter, r *http.Request) {
 		if !authdPost(w, r) {
 			return
 		}
@@ -174,7 +174,7 @@ func server(port int, password string) {
 func main() {
 
 	app := &cli.App{
-		Name:  "currently-playing",
+		Name:  "currently-listening",
 		Usage: "Get the song I'm currently listening to",
 		Flags: []cli.Flag{
 			&cli.IntFlag{

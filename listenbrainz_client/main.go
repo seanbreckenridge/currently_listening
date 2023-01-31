@@ -24,7 +24,6 @@ type ListenBrainzListen struct {
 		Artist_name  string `json:"artist_name"`
 		Track_name   string `json:"track_name"`
 		Release_name string `json:"release_name"`
-		Playing_now  bool   `json:"playing_now"`
 	} `json:"track_metadata"`
 }
 
@@ -68,9 +67,15 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 
 	serverRequest := func(body interface{}, path string) error {
 		client := &http.Client{}
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			return err
+		var bodyBytes []byte
+		if body == nil {
+			bodyBytes = []byte("{}")
+		} else {
+			marshalledBytes, err := json.Marshal(body)
+			if err != nil {
+				return err
+			}
+			bodyBytes = marshalledBytes
 		}
 		req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", serverUrl, path), ioutil.NopCloser(bytes.NewReader(bodyBytes)))
 		if err != nil {
@@ -127,7 +132,7 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 		// if no song is currently playing and we have a currently playing song, send a request to the server to clear it
 		if listenbrainzResponse.NoSongPlaying() && currentlyPlaying != nil {
 			fmt.Println("No song currently playing, clearing currently playing song")
-			err = serverRequest(currentlyPlaying, "clear-playing")
+			err = serverRequest(nil, "clear-listening")
 			if err != nil {
 				log.Fatalf("Error clearing currently playing song: %s\n", err.Error())
 			}
@@ -161,7 +166,7 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 				}
 
 				// send currently playing song to server
-				err = serverRequest(currentlyPlaying, "set-playing")
+				err = serverRequest(currentlyPlaying, "set-listening")
 				if err != nil {
 					log.Fatalf("Error setting currently playing song: %s\n", err.Error())
 				}

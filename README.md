@@ -10,13 +10,13 @@ This has lots of parts:
 
 To authenticate the POST requests to update data, set the `CURRENTLY_LISTENING_PASSWORD` environment variable
 
-To consume this, send a `currently-playing` message to the websocket URL, e.g.:
+To consume this, send a `currently-listening` message to the websocket URL, e.g.:
 
 ```python
 import websockets
 
 async with websockets.connect("ws://localhost:3030/ws") as websocket:
-    await websocket.send("currently-playing")
+    await websocket.send("currently-listening")
     response = await websocket.recv()
     logger.info(response)
 ```
