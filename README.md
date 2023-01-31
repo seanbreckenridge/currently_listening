@@ -1,4 +1,4 @@
-A personal Websocket based currently playing web-service. Generally, this follows something like:
+A personal Websocket based currently playing web-server. Generally, this follows something like:
 
 ```
 /**************************************************************************************/
