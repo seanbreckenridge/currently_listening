@@ -116,40 +116,41 @@ This requires:
 This is a pretty complex source with lots of moving parts, so to summarize:
 
 ```
-                               /*********************/
-                               /* mpv (application) */
-                               /*********************/
+                            /*********************/
+                            /* mpv (application) */
+                            /*********************/
                                        |
                                        ▼
-                      /****************************************/
-                      /*      mpv_sockets wrapper script      */
-                      /* launches mpv with unique IPC sockets */
-                      /****************************************/
+                   /****************************************/
+                   /*      mpv_sockets wrapper script      */
+                   /* launches mpv with unique IPC sockets */
+                   /****************************************/
                                        |
                                        ▼
-        /*********************************************************************/
-        /*                       mpv_history_daemon                          */
-        /* connects to active mpv IPC sockets and saves to local JSON files. */
-        /*   launched with the custom SocketDataServer class installed here, */
-        /* this also sends the JSON to a local currently_listening_py server */
-        /*********************************************************************/
+       /***************************************************************/
+       /*                      mpv_history_daemon                     */
+       /*            connects to active mpv IPC sockets and           */
+       /*      saves data to local JSON files. when launched with     */
+       /* the custom SocketDataServer class installed here, this also */
+       /*   sends the JSON to a local currently_listening_py server   */
+       /***************************************************************/
                                        |
                                        ▼
-     /*************************************************************************/
-     /*              currently_listening_py server (run locally)              */
-     /* uses my_feed/HPI to parse/filter the raw JSON from mpv_history_daemon */
-     /*************************************************************************/
+  /*************************************************************************/
+  /*              currently_listening_py server (run locally)              */
+  /* uses my_feed/HPI to parse/filter the raw JSON from mpv_history_daemon */
+  /*************************************************************************/
                                        |
                                        ▼
-        /********************************************************************/
-        /*                   main server (server/main.go)                   */
-        /* recieves updates whenever mpv song changes/mpv is paused/resumes */
-        /********************************************************************/
+     /********************************************************************/
+     /*                   main server (server/main.go)                   */
+     /* recieves updates whenever mpv song changes/mpv is paused/resumed */
+     /********************************************************************/
                                        |
                                        ▼
-                    /*******************************************/
-                    /* clients recieve broadcasts on websocket */
-                    /*******************************************/
+                 /*******************************************/
+                 /* clients recieve broadcasts on websocket */
+                 /*******************************************/
 ```
 
 To install the python library/server here:
