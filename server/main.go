@@ -126,6 +126,14 @@ func server(port int, password string) {
 			return
 		}
 
+		if currentlyPlayingSong != nil && cur.StartedAt < currentlyPlayingSong.StartedAt {
+			msg := "cannot set currently playing song to a song that started before the currently playing song"
+			fmt.Println(msg)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(msg))
+			return
+		}
+
 		// set currently playing
 		lock.Lock()
 		currentlyPlayingSong = &cur
