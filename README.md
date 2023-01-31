@@ -218,9 +218,9 @@ The two relevant endpoints (which both require `CURRENTLY_LISTENING_PASSWORD` as
 
 `/clear-listening` which clears the current song from memory (in other words, I finished listening to the song)
 
-Whenever either of those are hit with a `POST` request, it broadcasts to any currently connected websockets.
+Whenever either of those are hit with a `POST` request, it broadcasts to any currently connected websockets on `/ws`
 
-`currently_listening_py` includes a `print` command which sends the `currently-playing` message to the server:
+`currently_listening_py` includes a `print` command which sends the `currently-playing` message to websocket:
 
 `$ python3 -m currently_listening_py print --server-url 'wss://sean.fish/currently_listening/ws' | jq`
 
