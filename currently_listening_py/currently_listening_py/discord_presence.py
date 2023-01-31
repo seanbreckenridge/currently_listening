@@ -182,7 +182,6 @@ async def set_discord_presence_loop(
 
             logger.debug("Song is playing, updating presence")
             current_state = state.data
-            # TODO: add a lock here to prevent duplicate updates?
             logger.debug(
                 await RPC.update(
                     state=state.data.song.describe(),
