@@ -1,12 +1,13 @@
 import json
 import time
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from asyncio import sleep
 
 import websockets
 from logzero import logger
 from pydantic import BaseModel
 from pypresence import AioPresence
+from aiostream import stream
 
 
 class Song(BaseModel):
@@ -38,7 +39,7 @@ class Payload(BaseModel):
 
 
 async def get_currently_playing(
-    server_url: str,
+    server_url: str, poll_interval: Optional[int] = None
 ) -> AsyncGenerator[Payload, None]:
     first: bool = True
     async for websocket in websockets.connect(server_url):
@@ -48,6 +49,10 @@ async def get_currently_playing(
                 await websocket.send("currently-listening")
                 first = False
             logger.debug("waiting for response")
+            if poll_interval is not None:
+                await sleep(poll_interval)
+                logger.debug("polling server for currently-listening...")
+                await websocket.send("currently-listening")
             response = await websocket.recv()
             response = json.loads(response)
             response = Payload(**response)
@@ -79,7 +84,19 @@ async def set_discord_presence_loop(
             await sleep(sleep_for)
         last_request_at = time.time()
 
-    async for state in get_currently_playing(server_url):
+    # this maintains two websocket connections, one with polls
+    # once every 3 minutes to help prevent rpc failures
+    # from leaving a stale presence
+    #
+    # the other is just the normal websocket connection
+    # which recieves broadcasts from the server
+
+    combined = stream.merge(
+        stream.iterate(get_currently_playing(server_url, poll_interval=180)),
+        stream.iterate(get_currently_playing(server_url)),
+    )
+
+    async for state in combined:
         if state.data.playing and state.data.song is not None:
             if current_state == state.data:
                 logger.debug("Song is playing, but no change in state")
