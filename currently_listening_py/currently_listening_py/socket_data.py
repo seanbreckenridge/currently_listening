@@ -57,7 +57,7 @@ class SocketDataManager:
 
     def update_currently_playing(self, body: SocketSend, is_playing: bool) -> None:
         if not is_playing and self.is_playing:
-            logger.debug("Clearing currently playing")
+            logger.debug("Clearing currently listening")
             self.currently_playing = None
             self.is_playing = False
             self._post(
