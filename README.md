@@ -36,7 +36,7 @@ I also use this to set my discord presence:
 
 Requires `python3.9+` and `go`
 
-### `server/main.go`
+### `server`
 
 The main server `./server/main.go` can be built with:
 
@@ -79,7 +79,7 @@ location /currently_listening/ {
 
 The rest of the code here are clients which set the song I'm currently listening to, or which consume the websocket endpoint in some way (e.g., to set my discord presence)
 
-### listenbrainz_client
+### `listenbrainz_client`
 
 Install (you can also use the `Makefile` here to build both `go` tools):
 
@@ -106,7 +106,7 @@ GLOBAL OPTIONS:
 
 This could run either on your local machine or remotely, but I prefer remotely as it means its always active -- even if I'm out somewhere listening on my phone it still works.
 
-### mpv_history_daemon
+### `mpv_history_daemon`
 
 This requires:
 
@@ -186,7 +186,7 @@ Then, run the `mpv_history_daemon` with the custom `SocketDataServer` class inst
 
 That still saves all the data to `~/data/mpv`, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
 
-### discord presence
+### `discord-presence`
 
 To setup your client ID, see [pypresence](https://qwertyquerty.github.io/pypresence/html/info/quickstart.html) docs, and set the `PRESENCE_CLIENT_ID` with your applications `ClientID`.
 
