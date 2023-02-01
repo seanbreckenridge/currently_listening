@@ -138,6 +138,7 @@ This is a pretty complex source with lots of moving parts, so to summarize:
   /*************************************************************************/
   /*              currently_listening_py server (run locally)              */
   /* uses my_feed/HPI to parse/filter the raw JSON from mpv_history_daemon */
+  /*    optionally locates/caches/sends a thumbnail of the current song    */
   /*************************************************************************/
                                        |
                                        ▼
@@ -180,6 +181,20 @@ To run, first start the `currently_listening_py` server, e.g.:
 
 `currently_listening_py server --server-url https://.../currently_listening`
 
+```
+Usage: currently_listening_py server [OPTIONS]
+
+Options:
+  --server-url TEXT               remote server url  [default:
+                                  http://localhost:3030]
+  --send-images / --no-send-images
+                                  if available, send base64 encoded images to
+                                  the server. This caches compressed
+                                  thumbnails to a local cache dir
+  --port INTEGER                  local port to host on
+  --help                          Show this message and exit.
+```
+
 Then, run the `mpv_history_daemon` with the custom `SocketDataServer` class installed here
 
 `mpv_history_daemon_restart ~/data/mpv --socket-class-qualname 'currently_listening_py.socket_data.SocketDataServer'`
@@ -200,6 +215,9 @@ Usage: currently_listening_py discord-presence [OPTIONS]
 Options:
   --server-url TEXT               remote server url  [default:
                                   ws://localhost:3030/ws]
+  --image-url TEXT                endpoint for currently playing image url
+                                  [default: http://localhost:3030/currently-
+                                  listening-image]
   -d, --discord-client-id TEXT    Discord client id for setting my presence
                                   [env var: PRESENCE_CLIENT_ID]
   -D, --discord-rpc-wait-time INTEGER RANGE
@@ -234,6 +252,11 @@ The two relevant endpoints (which both require `password`: `CURRENTLY_LISTENING_
 }
 ```
 
+If a `base64_image` is provided by the client, its sent back as part of the response. This also includes an image endpoint `/currently-listening-image/`, which returns the image for the song thats currently playing, if `base64_image` was set.
+
+If requesting this from something which might cache this image, can add additional random text as part of the path, e.g.,: `/currently-listening-image/JkFJQ0hJTkdfSU1BR0U9FgF49kKFLASMRIEJKMW2340`
+
+
 `/clear-listening` which clears the current song from memory (in other words, I finished listening to the song), with `POST` body like:
 
 ```yaml
@@ -242,7 +265,7 @@ The two relevant endpoints (which both require `password`: `CURRENTLY_LISTENING_
 
 Whenever either of those are hit with a `POST` request, it broadcasts to any currently connected websockets on `/ws`
 
-`currently_listening_py` includes a `print` command which sends the `currently-playing` message to websocket:
+`currently_listening_py` includes a `print` command which sends the `currently-listening` message to websocket:
 
 `$ python3 -m currently_listening_py print --server-url 'wss://sean.fish/currently_listening/ws' | jq`
 

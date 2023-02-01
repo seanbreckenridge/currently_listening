@@ -49,7 +49,7 @@ def print(server_url: str) -> None:
     "--send-images/--no-send-images",
     default=False,
     is_flag=True,
-    help="send base64 encoded images to server. This caches the compression to a local cache dir",
+    help="if available, send base64 encoded images to the server. This caches compressed thumbnails to a local cache dir",
 )
 @click.option("--port", default=3040, help="local port to host on")
 def server(server_url: str, port: int, send_images: bool) -> None:
