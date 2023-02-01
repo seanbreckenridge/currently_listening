@@ -209,8 +209,8 @@ async def set_discord_presence_loop(
                 # just using a prefix/suffix from the base64 here doesn't always produce a unique url
                 imgurl = f"{image_url}/{hashlib.md5(b64.encode()).hexdigest()}"
                 logger.debug(f"image url: {imgurl}")
-                kwargs["small_image"] = imgurl
-                kwargs["small_text"] = csong.album or csong.artist or ""
+                kwargs["large_image"] = imgurl
+                kwargs["large_text"] = csong.album or csong.artist or ""
             logger.debug(
                 await RPC.update(
                     state=state.data.song.describe(),
