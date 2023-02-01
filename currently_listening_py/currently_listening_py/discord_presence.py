@@ -1,6 +1,7 @@
 from __future__ import annotations
 import asyncio
 import json
+import hashlib
 import time
 from typing import AsyncGenerator, Optional, Tuple, cast
 from asyncio import sleep
@@ -158,10 +159,6 @@ class SocketWithPoll:
                 return next_item
 
 
-def urlsafe_base64(base64_encoded: str) -> str:
-    return base64_encoded.replace("+", "-").replace("/", "_").replace("=", "")
-
-
 async def set_discord_presence_loop(
     server_url: str,
     client_id: str,
@@ -208,8 +205,9 @@ async def set_discord_presence_loop(
             current_state = state.data
             kwargs = {}
             if b64 := csong.base64_image.strip():
-                # use the first 100 characters of the base64 encoded image to avoid caching the same '/currently-listening-image' URL
-                imgurl = f"{image_url}/{urlsafe_base64(b64)[:100]}"
+                # hash the base64 image to prevent discord from caching it
+                # just using a prefix/suffix from the base64 here doesn't always produce a unique url
+                imgurl = f"{image_url}/{hashlib.md5(b64.encode()).hexdigest()}"
                 logger.debug(f"image url: {imgurl}")
                 kwargs["small_image"] = imgurl
                 kwargs["small_text"] = csong.album or csong.artist or ""
