@@ -2,14 +2,14 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import AsyncGenerator, Optional, Tuple
+from typing import AsyncGenerator, Optional, Tuple, cast
 from asyncio import sleep
 from datetime import datetime
 
 from websockets.client import connect, WebSocketClientProtocol
 from websockets.exceptions import ConnectionClosed
 from logzero import logger  # type: ignore[import]
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pypresence import AioPresence  # type: ignore[import]
 
 
@@ -17,7 +17,7 @@ class Song(BaseModel):
     title: str
     artist: str
     album: str | None
-    base64_image: str
+    base64_image: str = Field(repr=False)
 
     def describe(self) -> str:
         desc = self.title
@@ -197,6 +197,7 @@ async def set_discord_presence_loop(
             continue
         assert isinstance(state, Payload)
         if state.data.playing and state.data.song is not None:
+            csong: Song = cast(Song, state.data.song)
             if current_state == state.data:
                 logger.debug("Song is playing, but no change in state")
                 continue
@@ -205,14 +206,13 @@ async def set_discord_presence_loop(
 
             logger.debug("Song is playing, updating presence")
             current_state = state.data
-            assert current_state.song is not None
             kwargs = {}
-            if b64 := current_state.song.base64_image.strip():
+            if b64 := csong.base64_image.strip():
                 # use the first 100 characters of the base64 encoded image to avoid caching the same '/currently-listening-image' URL
-                kwargs["large_image"] = f"{image_url}?q={urlsafe_base64(b64)[:100]}"
-                kwargs["small_text"] = (
-                    state.data.song.album or state.data.song.artist or ""
-                )
+                imgurl = f"{image_url}/{urlsafe_base64(b64)[:100]}"
+                logger.debug(f"image url: {imgurl}")
+                kwargs["small_image"] = imgurl
+                kwargs["small_text"] = csong.album or csong.artist or ""
             logger.debug(
                 await RPC.update(
                     state=state.data.song.describe(),

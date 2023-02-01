@@ -192,11 +192,11 @@ func server(port int, password string) {
 		}
 	})
 
-	// if requesting this from something which might cache this image, add a query parameter to the URL
-	// can do so by using some of the base64 image your client received
+	// if requesting this from something which might cache this image, add a part of the base64
+	// as a secondary path, e.g.
 	//
-	// e.g. /currently-listening-image?q=JkFJQ0hJTkdfSU1BR0U9Fg
-	http.HandleFunc("/currently-listening-image", func(w http.ResponseWriter, r *http.Request) {
+	// e.g. /currently-listening-image/JkFJQ0hJTkdfSU1BR0U9Fg
+	http.HandleFunc("/currently-listening-image/", func(w http.ResponseWriter, r *http.Request) {
 		if currentlyListeningSong == nil {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("no currently listening song"))
