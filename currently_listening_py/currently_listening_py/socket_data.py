@@ -130,8 +130,10 @@ class SocketDataManager:
         cover_art = self.get_cover_art(media)
         if cover_art is None:
             return None
+        # exclude first part of path '/'
+        # and last part of path (song filename)
         cache_dir_target = self.cache_image_dir / os.path.join(
-            *Path(media.path).parts[1:]
+            *Path(media.path).absolute().parts[1:-1]
         )
         logger.debug(f"Found source art: {cover_art=}")
         cache_target = (cache_dir_target / cover_art.name).with_suffix(".jpg")
