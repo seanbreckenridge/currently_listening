@@ -85,7 +85,7 @@ class SocketDataManager:
 
     @classmethod
     def cache_compressed_cover_art(cls, image: Path, save_to: Path) -> Path:
-        from PIL import Image
+        from PIL import Image  # type: ignore[import]
 
         with open(image, "rb") as f:
             img = Image.open(f)
@@ -149,7 +149,7 @@ class SocketDataManager:
 
         title, album, artist = metadata
 
-        cover_art = ""
+        cover_art: Optional[str] = None
         if self.cache_images and body.is_playing:
             cover_art = self.get_compressed_cover_art(current)
 

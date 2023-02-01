@@ -3,7 +3,7 @@ import asyncio
 import json
 import hashlib
 import time
-from typing import AsyncGenerator, Optional, Tuple, cast
+from typing import AsyncGenerator, Optional, Tuple
 from asyncio import sleep
 from datetime import datetime
 
@@ -194,7 +194,7 @@ async def set_discord_presence_loop(
             continue
         assert isinstance(state, Payload)
         if state.data.playing and state.data.song is not None:
-            csong: Song = cast(Song, state.data.song)
+            csong: Song = state.data.song
             if current_state == state.data:
                 logger.debug("Song is playing, but no change in state")
                 continue
