@@ -45,14 +45,25 @@ def print(server_url: str) -> None:
     help="remote server url",
     show_default=True,
 )
+@click.option(
+    "--send-images/--no-send-images",
+    default=False,
+    is_flag=True,
+    help="send base64 encoded images to server. This caches the compression to a local cache dir",
+)
 @click.option("--port", default=3040, help="local port to host on")
-def server(server_url: str, port: int) -> None:
+def server(server_url: str, port: int, send_images: bool) -> None:
     assert (
         server_password is not None
     ), "Set password with `currently_listening_py --password '...' server` or set the CURRENTLY_LISTENING_PASSWORD environment variable"
     from .server import server as run_server
 
-    run_server(remote_server=server_url, port=port, server_password=server_password)
+    run_server(
+        remote_server=server_url,
+        port=port,
+        server_password=server_password,
+        cache_images=send_images,
+    )
 
 
 @main.command(short_help="set currently playing on discord")

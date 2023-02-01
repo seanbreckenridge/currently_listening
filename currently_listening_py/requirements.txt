@@ -6,3 +6,5 @@ more_itertools
 mpv_history_daemon
 pypresence
 websockets
+Pillow
+platformdirs

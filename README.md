@@ -230,6 +230,7 @@ The two relevant endpoints (which both require `password`: `CURRENTLY_LISTENING_
   "album": "album name", # can be empty string if no album known
   "title": "title/track name",
   "started_at": 1675146416, # epoch time
+  "base64_image": "..." # base64 encoded image
 }
 ```
 

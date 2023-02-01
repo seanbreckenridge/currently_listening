@@ -17,6 +17,7 @@ class Song(BaseModel):
     title: str
     artist: str
     album: str | None
+    base64_image: str
 
     def describe(self) -> str:
         desc = self.title
@@ -199,9 +200,14 @@ async def set_discord_presence_loop(
 
             logger.debug("Song is playing, updating presence")
             current_state = state.data
+            kwargs = {}
+            if state.data.song.base64_image.strip():
+                kwargs["large_image"] = state.data.song.base64_image
+                kwargs["large_text"] = state.data.song.album or state.data.song.artist
             logger.debug(
                 await RPC.update(
                     state=state.data.song.describe(),
+                    **kwargs,
                 )
             )
             last_request_at = time.time()

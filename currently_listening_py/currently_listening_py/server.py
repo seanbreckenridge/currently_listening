@@ -3,7 +3,12 @@ from fastapi import FastAPI
 
 
 def server(
-    *, port: int, remote_server: str, server_password: str, debug: bool = True
+    *,
+    port: int,
+    remote_server: str,
+    server_password: str,
+    cache_images: bool,
+    debug: bool = True
 ) -> None:
 
     app = FastAPI()
@@ -14,7 +19,7 @@ def server(
 
     from .socket_data import create_router, create_manager
 
-    create_manager(remote_server, server_password)
+    create_manager(remote_server, server_password, cache_images)
 
     app.include_router(create_router())
 

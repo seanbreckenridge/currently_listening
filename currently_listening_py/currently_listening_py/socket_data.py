@@ -13,9 +13,12 @@ python3 -m mpv_history_daemon daemon /tmp/mpvsockets ~/data/mpv --socket-class-q
 """
 
 import os
+import base64
 from typing import Optional, Any, List
+from pathlib import Path
 
 import requests
+import platformdirs
 from more_itertools import last
 from pydantic import BaseModel
 from fastapi import APIRouter
@@ -37,6 +40,7 @@ class SetListening(BaseModel):
     artist: str
     album: str
     started_at: int
+    base64_image: str
 
 
 class ClearListening(BaseModel):
@@ -44,11 +48,17 @@ class ClearListening(BaseModel):
 
 
 class SocketDataManager:
-    def __init__(self, remote_server: str, server_password: str) -> None:
+    def __init__(
+        self, remote_server: str, server_password: str, cache_images: bool
+    ) -> None:
         self.currently_listening: Optional[SetListening] = None
         self.is_playing = False
         self.remote_server_url = remote_server
         self.server_password = server_password
+        self.cache_images = cache_images
+        self.cache_image_dir = Path(
+            platformdirs.user_cache_dir(appname="currently-listening-py")
+        )
 
     def _post_to_server(
         self, path: str, body: SetListening | ClearListening | None = None
@@ -87,6 +97,61 @@ class SocketDataManager:
                     body=body,
                 )
 
+    COVERS = [
+        "cover.jpg",
+        "cover.png",
+        "Folder.jpg",
+        "Folder.png",
+        "thumb.jpg",
+    ]
+
+    @classmethod
+    def get_cover_art(cls, media: Media) -> Optional[Path]:
+        collection_dir = os.path.dirname(media.path)
+        for cover in cls.COVERS:
+            cover_path = os.path.join(collection_dir, cover)
+            if os.path.exists(cover_path):
+                return Path(cover_path)
+        return None
+
+    @classmethod
+    def cache_compressed_cover_art(cls, image: Path, save_to: Path) -> Path:
+        from PIL import Image
+
+        with open(image, "rb") as f:
+            img = Image.open(f)
+            img.thumbnail((100, 100))
+            with open(save_to, "wb") as tf:
+                img.save(tf, "JPEG")
+            logger.debug(f"Saved compressed cover art to {save_to}")
+        return save_to
+
+    def get_compressed_cover_art(self, media: Media) -> Optional[str]:
+        cover_art = self.get_cover_art(media)
+        if cover_art is None:
+            return None
+        cache_dir_target = self.cache_image_dir / os.path.join(
+            *Path(media.path).parts[1:]
+        )
+        logger.debug(f"Found source art: {cover_art=}")
+        cache_target = (cache_dir_target / cover_art.name).with_suffix(".jpg")
+        if not cache_target.exists():
+            logger.debug(f"No cached cover art found: {cache_target=}")
+            cache_target.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                self.cache_compressed_cover_art(cover_art, save_to=cache_target)
+            except Exception as e:
+                logger.error(f"Failed to cache cover art: {e}")
+                return None
+
+        if cache_target.exists():
+            logger.debug(f"Found cached cover art: {cache_target=}")
+            # load image as base64
+            with open(cache_target, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+
+        return None
+
     def process_currently_listening(self, body: SocketBody) -> None:
         from my_feed.sources.mpv import _media_is_allowed, _has_metadata
 
@@ -112,6 +177,10 @@ class SocketDataManager:
 
         title, album, artist = metadata
 
+        cover_art = ""
+        if self.cache_images and body.is_playing:
+            cover_art = self.get_compressed_cover_art(current)
+
         sendbody: SetListening | ClearListening
         if body.is_playing:
             sendbody = SetListening(
@@ -119,6 +188,7 @@ class SocketDataManager:
                 artist=artist,
                 album=album,
                 started_at=int(current.start_time.timestamp()),
+                base64_image=cover_art or "",
             )
         else:
             sendbody = ClearListening(
@@ -133,9 +203,11 @@ class SocketDataManager:
 manager: Optional[SocketDataManager] = None
 
 
-def create_manager(remote_server: str, server_password: str) -> None:
+def create_manager(
+    remote_server: str, server_password: str, cache_images: bool
+) -> None:
     global manager
-    manager = SocketDataManager(remote_server, server_password)
+    manager = SocketDataManager(remote_server, server_password, cache_images)
 
 
 def create_router() -> APIRouter:
