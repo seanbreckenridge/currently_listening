@@ -129,6 +129,7 @@ class SocketDataManager:
     def get_compressed_cover_art(self, media: Media) -> Optional[str]:
         cover_art = self.get_cover_art(media)
         if cover_art is None:
+            logger.debug(f"No cover art found for {media.path} using {self.COVERS=}")
             return None
         # exclude first part of path '/'
         # and last part of path (song filename)
