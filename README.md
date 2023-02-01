@@ -230,7 +230,7 @@ Options:
   --help                          Show this message and exit.
 ```
 
-To comply with the discord API rate limit, this only updates to the most recent request every ~20 seconds
+To comply with the discord RPC rate limit, this only updates to the most recent request every ~20 seconds
 
 ![demo discord image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/discord.png?raw=true)
 
