@@ -142,7 +142,11 @@ func server(port int, password string) {
 			// broadcast to all clients
 			m.Broadcast(sendBody)
 			// respond to POST request
-			msg := fmt.Sprintf("Set currently playing song to Artist: '%s', Album: '%s', Title: '%s', Image '%s'", cur.Artist, cur.Album, cur.Title, cur.Base64Image[0:10])
+			imgDesc := cur.Base64Image
+			if len(imgDesc) > 10 {
+				imgDesc = imgDesc[0:10]
+			}
+			msg := fmt.Sprintf("Set currently playing song to Artist: '%s', Album: '%s', Title: '%s', Image '%s'", cur.Artist, cur.Album, cur.Title, imgDesc)
 			fmt.Println(msg)
 			w.Write([]byte(msg))
 		} else {
