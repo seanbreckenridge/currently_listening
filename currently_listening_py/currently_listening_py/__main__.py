@@ -74,6 +74,12 @@ def server(server_url: str, port: int, send_images: bool) -> None:
     show_default=True,
 )
 @click.option(
+    "--image-url",
+    default="http://localhost:3030/currently-listening-image",
+    help="endpoint for currently playing image url",
+    show_default=True,
+)
+@click.option(
     "-d",
     "--discord-client-id",
     envvar="PRESENCE_CLIENT_ID",
@@ -96,6 +102,7 @@ def server(server_url: str, port: int, send_images: bool) -> None:
 )
 def discord_presence(
     server_url: str,
+    image_url: str,
     discord_client_id: str,
     discord_rpc_wait_time: int,
     websocket_poll_interval: int,
@@ -106,6 +113,7 @@ def discord_presence(
         set_discord_presence_loop(
             server_url,
             discord_client_id,
+            image_url=image_url,
             discord_rpc_wait_time=discord_rpc_wait_time,
             websocket_poll_interval=websocket_poll_interval,
         )

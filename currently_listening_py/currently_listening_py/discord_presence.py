@@ -158,10 +158,15 @@ class SocketWithPoll:
                 return next_item
 
 
+def urlsafe_base64(base64_encoded: str) -> str:
+    return base64_encoded.replace("+", "-").replace("/", "_").replace("=", "")
+
+
 async def set_discord_presence_loop(
     server_url: str,
     client_id: str,
     *,
+    image_url: str,
     discord_rpc_wait_time: int = 20,
     websocket_poll_interval: int = 180,
 ) -> None:
@@ -200,10 +205,14 @@ async def set_discord_presence_loop(
 
             logger.debug("Song is playing, updating presence")
             current_state = state.data
+            assert current_state.song is not None
             kwargs = {}
-            if state.data.song.base64_image.strip():
-                kwargs["large_image"] = state.data.song.base64_image
-                kwargs["large_text"] = state.data.song.album or state.data.song.artist
+            if b64 := current_state.song.base64_image.strip():
+                # use the first 100 characters of the base64 encoded image to avoid caching the same '/currently-listening-image' URL
+                kwargs["large_image"] = f"{image_url}?q={urlsafe_base64(b64)[:100]}"
+                kwargs["small_text"] = (
+                    state.data.song.album or state.data.song.artist or ""
+                )
             logger.debug(
                 await RPC.update(
                     state=state.data.song.describe(),

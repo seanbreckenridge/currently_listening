@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/olahol/melody"
@@ -9,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -188,6 +190,37 @@ func server(port int, password string) {
 		} else {
 			handleError(w, err)
 		}
+	})
+
+	// if requesting this from something which might cache this image, add a query parameter to the URL
+	// can do so by using some of the base64 image your client received
+	//
+	// e.g. /currently-listening-image?q=JkFJQ0hJTkdfSU1BR0U9Fg
+	http.HandleFunc("/currently-listening-image", func(w http.ResponseWriter, r *http.Request) {
+		if currentlyListeningSong == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("no currently listening song"))
+			return
+		}
+
+		if currentlyListeningSong.Base64Image == "" {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("no image for currently listening song"))
+			return
+		}
+
+		// decode base64 image
+		decoded, err := base64.StdEncoding.DecodeString(currentlyListeningSong.Base64Image)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("error decoding base64 image"))
+			return
+		}
+
+		// set content type
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("Content-Length", strconv.Itoa(len(decoded)))
+		w.Write(decoded)
 	})
 
 	fmt.Printf("Listening on port %d\n", port)
