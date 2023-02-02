@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type CurrentlyListeningResponse struct {
@@ -24,7 +25,7 @@ type WebsocketResponse struct {
 	Data    interface{} `json:"data"`
 }
 
-func server(port int, password string) {
+func server(port int, password string, staleAfter int64) {
 	m := melody.New()
 	m.HandleConnect(func(s *melody.Session) {
 		log.Printf("Opened connection from %s\n", s.Request.RemoteAddr)
@@ -38,7 +39,8 @@ func server(port int, password string) {
 
 	// global state
 	var currentlyListeningSong *currently_listening.SetListening
-	var currentTimeStamp *int64
+	var currentTimeStamp *int64 // when the song started playing, set by clients
+	var lastUpdated int64       // last time song was updated, to prevent stale data from remaining in the global state
 	var isCurrentlyPlaying bool
 
 	currentlyListeningJSON := func() ([]byte, error) {
@@ -56,6 +58,30 @@ func server(port int, password string) {
 		}
 		return songBytes, nil
 	}
+
+	go func() {
+		for {
+			time.Sleep(time.Second * 10)
+			lock.Lock()
+			if currentlyListeningSong != nil && isCurrentlyPlaying && lastUpdated != 0 {
+				if time.Now().Unix()-lastUpdated > staleAfter {
+					fmt.Fprintf(os.Stderr, "Been more than %d seconds since last update, clearing currently listening song\n", staleAfter)
+					// unset currently playing
+					currentlyListeningSong = nil
+					currentTimeStamp = nil
+					isCurrentlyPlaying = false
+					lastUpdated = 0  // reset to 'unset', so we don't clear it again
+					// send to all clients
+					if cur, err := currentlyListeningJSON(); err == nil {
+						m.Broadcast(cur)
+					} else {
+						fmt.Println("Error marshalling currently listening song to JSON")
+					}
+				}
+			}
+			lock.Unlock()
+		}
+	}()
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		switch string(msg) {
@@ -135,6 +161,7 @@ func server(port int, password string) {
 		lock.Lock()
 		currentlyListeningSong = &cur
 		currentTimeStamp = &cur.StartedAt
+		lastUpdated = time.Now().Unix()
 		isCurrentlyPlaying = true
 		lock.Unlock()
 
@@ -181,6 +208,7 @@ func server(port int, password string) {
 		lock.Lock()
 		currentlyListeningSong = nil
 		currentTimeStamp = &cur.EndedAt
+		lastUpdated = time.Now().Unix()
 		isCurrentlyPlaying = false
 		lock.Unlock()
 
@@ -249,11 +277,14 @@ func main() {
 				Required: true,
 				EnvVars:  []string{"CURRENTLY_LISTENING_PASSWORD"},
 			},
+			&cli.Int64Flag{
+				Name:  "stale-after",
+				Value: 3600,
+				Usage: "Number of seconds after which the currently listening song is considered stale, and will be cleared. Typically, this should be cleared by the client, but this is a fallback to prevent stale state from remaining for long periods of time",
+			},
 		},
 		Action: func(c *cli.Context) error {
-			port := c.Int("port")
-			pw := c.String("password")
-			server(port, pw)
+			server(c.Int("port"), c.String("password"), c.Int64("stale-after"))
 			return nil
 		},
 	}
