@@ -45,7 +45,7 @@ class Payload(BaseModel):
 
 async def get_currently_playing(
     server_url: str, poll_interval: Optional[int] = None
-) -> AsyncGenerator[Payload, None]:
+) -> AsyncGenerator[SongPayload, None]:
     first: bool = True
 
     current_websocket: Optional[WebSocketClientProtocol] = None
@@ -75,7 +75,7 @@ async def get_currently_playing(
                 await websocket.send("currently-listening")
                 first = False
             response = await websocket.recv()
-            yield Payload(**json.loads(response))
+            yield Payload(**json.loads(response)).data
         except ConnectionClosed:
             logger.debug("Connection closed, reconnecting")
             await sleep(3)
@@ -111,7 +111,9 @@ class SocketWithPoll:
 
         self._stream = get_currently_playing(server_url, poll_interval)
 
-        self._items: asyncio.LifoQueue[Tuple[datetime, Payload]] = asyncio.LifoQueue()
+        self._items: asyncio.LifoQueue[
+            Tuple[datetime, SongPayload]
+        ] = asyncio.LifoQueue()
         self._lock = asyncio.Lock()
         self._websocket_task = asyncio.create_task(self.yield_iterator_to_queue())
 
@@ -131,7 +133,7 @@ class SocketWithPoll:
     def __aiter__(self) -> SocketWithPoll:
         return self
 
-    async def __anext__(self) -> Payload | object:
+    async def __anext__(self) -> SongPayload | object:
         # if empty, we block on the self.combined iterator
         # which returns an item when its available from the websocket
         if self._items.empty():
@@ -145,14 +147,14 @@ class SocketWithPoll:
             async with self._lock:
                 # if not empty, we only want the latest item, not any others that may have
                 # accumulated while we were waiting for discord rate limit
-                queue_items: list[Tuple[datetime, Payload]] = []
+                queue_items: list[Tuple[datetime, SongPayload]] = []
                 while not self._items.empty():
                     queue_items.append(self._items.get_nowait())
                     self._items.task_done()  # let the queue know we're done with this task
 
                 # sort by datetime, and return the latest item
                 queue_items.sort(key=lambda x: x[0])
-                next_item: Payload = queue_items[-1][1]
+                next_item: SongPayload = queue_items[-1][1]
                 logger.info(
                     f"returning {next_item} from queue, discarding {len(queue_items) - 1} other items"
                 )
@@ -192,17 +194,15 @@ async def set_discord_presence_loop(
         if state == SENTINEL:
             # logger.debug("No new items from websocket, waiting")
             continue
-        assert isinstance(state, Payload)
-        if state.data.playing and state.data.song is not None:
-            csong: Song = state.data.song
-            if current_state == state.data:
+        assert isinstance(state, SongPayload)
+        if state.playing is True and state.song is not None:
+            if current_state == state:
                 logger.debug("Song is playing, but no change in state")
                 continue
-
-            await rate_limit()
+            current_state = state
+            csong: Song = state.song
 
             logger.debug("Song is playing, updating presence")
-            current_state = state.data
             kwargs = {}
             if b64 := csong.base64_image.strip():
                 # hash the base64 image to prevent discord from caching it
@@ -213,14 +213,13 @@ async def set_discord_presence_loop(
                 kwargs["large_text"] = csong.album or csong.artist or ""
             logger.debug(
                 await RPC.update(
-                    state=state.data.song.describe(),
+                    state=csong.describe(),
                     **kwargs,
                 )
             )
             last_request_at = time.time()
         else:
             logger.debug("Song is not playing, clearing presence")
-            await rate_limit()
             current_state = None
             logger.debug(await RPC.clear())
             last_request_at = time.time()
