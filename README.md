@@ -48,9 +48,10 @@ Run `currently_listening_server`:
 
 ```
 GLOBAL OPTIONS:
-   --port value      Port to listen on (default: 3030)
-   --password value  Password to authenticate setting the currently playing song [$CURRENTLY_LISTENING_PASSWORD]
-   --help, -h        show help
+   --port value         Port to listen on (default: 3030)
+   --password value     Password to authenticate setting the currently listening song [$CURRENTLY_LISTENING_PASSWORD]
+   --stale-after value  Number of seconds after which the currently listening song is considered stale, and will be cleared. Typically, this should be cleared by the client, but this is a fallback to prevent stale state from remaining for long periods of time (default: 3600)
+   --help, -h           show help
 ```
 
 Set the `CURRENTLY_LISTENING_PASSWORD` environment variable to authenticate `POST` requests (so that only you can set what music you're listening to)
