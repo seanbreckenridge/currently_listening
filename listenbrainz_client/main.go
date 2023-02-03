@@ -49,7 +49,7 @@ func (p *ListenBrainzResponse) CurrentlyPlaying() *ListenBrainzListen {
 	return nil
 }
 
-func pollListenbrainz(username string, password string, serverUrl string, debug bool, pollInterval int) {
+func pollListenbrainz(username string, password string, serverUrl string, debug bool, pollInterval int, pollIntervalWhenListening int) {
 	url := fmt.Sprintf("https://api.listenbrainz.org/1/user/%s/playing-now", username)
 	var currentlyPlaying *currently_listening.SetListening
 
@@ -94,7 +94,11 @@ func pollListenbrainz(username string, password string, serverUrl string, debug 
 	}
 
 	sleep := func() {
-		time.Sleep(time.Duration(pollInterval) * time.Second)
+		if currentlyPlaying != nil {
+			time.Sleep(time.Duration(pollIntervalWhenListening) * time.Second)
+		} else {
+			time.Sleep(time.Duration(pollInterval) * time.Second)
+		}
 	}
 
 	for {
@@ -201,6 +205,11 @@ func main() {
 				Value: 30,
 				Usage: "Interval in seconds to poll ListenBrainz for currently playing song",
 			},
+			&cli.IntFlag{
+				Name:  "poll-interval-when-playing",
+				Value: 5,
+				Usage: "Interval in seconds to poll ListenBrainz for currently playing song, when a song is playing",
+			},
 			&cli.BoolFlag{
 				Name:  "debug",
 				Value: false,
@@ -208,7 +217,7 @@ func main() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			pollListenbrainz(c.String("listenbrainz-username"), c.String("password"), c.String("server-url"), c.Bool("debug"), c.Int("poll-interval"))
+			pollListenbrainz(c.String("listenbrainz-username"), c.String("password"), c.String("server-url"), c.Bool("debug"), c.Int("poll-interval"), c.Int("poll-interval-when-playing"))
 			return nil
 		},
 	}

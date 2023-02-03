@@ -96,12 +96,13 @@ Run `listenbrainz_client_poll`:
 
 ```
 GLOBAL OPTIONS:
-   --password value               Password to authenticate setting the currently playing song [$CURRENTLY_LISTENING_PASSWORD]
-   --listenbrainz-username value  ListenBrainz username [$LISTENBRAINZ_USERNAME]
-   --server-url value             URL of the server to send the currently playing song to (default: "http://localhost:3030")
-   --poll-interval value          Interval in seconds to poll ListenBrainz for currently playing song (default: 30)
-   --debug                        Enable debug logging (default: false)
-   --help, -h                     show help
+   --password value                    Password to authenticate setting the currently playing song [$CURRENTLY_LISTENING_PASSWORD]
+   --listenbrainz-username value       ListenBrainz username [$LISTENBRAINZ_USERNAME]
+   --server-url value                  URL of the server to send the currently playing song to (default: "http://localhost:3030")
+   --poll-interval value               Interval in seconds to poll ListenBrainz for currently playing song (default: 30)
+   --poll-interval-when-playing value  Interval in seconds to poll ListenBrainz for currently playing song, when a song is playing (default: 5)
+   --debug                             Enable debug logging (default: false)
+   --help, -h                          show help
 ```
 
 This could run either on your local machine or remotely, but I prefer remotely as it means its always active -- even if I'm out somewhere listening on my phone it still works.
