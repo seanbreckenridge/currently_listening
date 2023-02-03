@@ -249,14 +249,13 @@ The two relevant endpoints (which both require `password`: `CURRENTLY_LISTENING_
   "album": "album name", # can be empty string if no album known
   "title": "title/track name",
   "started_at": 1675146416, # epoch time
-  "base64_image": "..." # base64 encoded image
+  "base64_image": "...", # base64 encoded image
 }
 ```
 
 If a `base64_image` is provided by the client, its sent back as part of the response. This also includes an image endpoint `/currently-listening-image/`, which returns the image for the song thats currently playing, if `base64_image` was set.
 
 If requesting this from something which might cache this image, can add additional random text as part of the path, e.g.,: `/currently-listening-image/JkFJQ0hJTkdfSU1BR0U9FgF49kKFLASMRIEJKMW2340`
-
 
 `/clear-listening` which clears the current song from memory (in other words, I finished listening to the song), with `POST` body like:
 
@@ -287,19 +286,34 @@ Whenever either of those are hit with a `POST` request, it broadcasts to any cur
 
 If `playing` is `false`, `song` is `null`
 
-Some basic python to do the same:
+---
+
+Some basic python to connect to the server and recieve broadcasts
 
 ```python
+import os
+import sys
+import json
 import asyncio
+
 from websockets.client import connect
+from websockets.exceptions import ConnectionClosed
 
-async def _get_currently_playing(server_url: str) -> None:
-    async with connect(server_url) as websocket:
+
+async def _websocket_loop(server_url: str) -> None:
+    async for websocket in connect(server_url):
         await websocket.send("currently-listening")
-        print(await websocket.recv())
+        try:
+            while True:
+                message = await websocket.recv()
+                print(json.loads(message))
+        except ConnectionClosed:
+            print("Connection closed", file=sys.stderr)
+            await asyncio.sleep(1)
+            continue
 
 
-asyncio.run(_get_currently_playing("wss://..../ws")
+asyncio.run(_websocket_loop(os.environ.get("WEBSOCKET_URL", "ws://localhost:3030/ws")))
 ```
 
 or javascript:
@@ -307,17 +321,30 @@ or javascript:
 ```javascript
 const websocketUrl = Deno.env.get("WEBSOCKET_URL") || "ws://localhost:3030/ws";
 
-const ws = new WebSocket(websocketUrl);
+function connect() {
+  let ws = new WebSocket(websocketUrl);
 
-ws.onopen = () => {
-  console.log("Connected to websocket server");
-  ws.send("currently-listening");
-};
+  ws.onopen = () => {
+    console.log("Connected to websocket server");
+    ws.send("currently-listening");
+  };
 
-ws.onmessage = (event) => {
-  console.log(
-    "Received message from websocket server:",
-    JSON.parse(event?.data ?? "{}", null, 2)
-  );
-};
+  ws.onmessage = (event) => {
+    console.log(
+      "Received message from websocket server:",
+      JSON.parse(event?.data ?? "{}", null, 2)
+    );
+  };
+
+  ws.onclose = () => {
+    console.log("Disconnected from websocket server");
+    // reconnect
+    setTimeout(() => {
+      console.log("Reconnecting to websocket server");
+      connect();
+    }, 1000);
+  };
+}
+
+connect();
 ```

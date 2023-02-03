@@ -70,7 +70,7 @@ func server(port int, password string, staleAfter int64) {
 					currentlyListeningSong = nil
 					currentTimeStamp = nil
 					isCurrentlyPlaying = false
-					lastUpdated = 0  // reset to 'unset', so we don't clear it again
+					lastUpdated = 0 // reset to 'unset', so we don't clear it again
 					// send to all clients
 					if cur, err := currentlyListeningJSON(); err == nil {
 						m.Broadcast(cur)
