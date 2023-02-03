@@ -33,13 +33,17 @@ class SocketDataManager:
         self, path: str, body: SetListening | ClearListening | None = None
     ) -> None:
         data: dict[str, Any] = body.dict() if body is not None else {}
-        resp = requests.post(
-            f"{self.remote_server_url}/{path}",
-            json=data,
-            headers={"password": self.server_password},
-        )
+        try:
+            resp = requests.post(
+                f"{self.remote_server_url}/{path}",
+                json=data,
+                headers={"password": self.server_password},
+            )
+        except requests.RequestException as e:
+            logger.error(f"Failed to post to {path}: {e}", exc_info=True)
+            return
         if resp.status_code != 200:
-            logger.error(f"Got status code {resp.status_code} from {path}: {resp.text}")
+            logger.warning(f"Got status code {resp.status_code} from {path}: {resp.text}")
 
     def update_currently_listening(
         self, body: SetListening | ClearListening, is_playing: bool
@@ -113,7 +117,7 @@ class SocketDataManager:
             try:
                 self.cache_compressed_cover_art(cover_art, save_to=cache_target)
             except Exception as e:
-                logger.error(f"Failed to cache cover art: {e}")
+                logger.error(f"Failed to cache cover art: {e}", exc_info=True)
                 return None
 
         if cache_target.exists():

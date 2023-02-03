@@ -1,10 +1,9 @@
 from __future__ import annotations
-import asyncio
 import json
 import hashlib
 import time
 from typing import AsyncGenerator, Optional, Tuple
-from asyncio import sleep
+from asyncio import sleep, LifoQueue, Lock, create_task, CancelledError
 from datetime import datetime
 
 from websockets.client import connect, WebSocketClientProtocol
@@ -43,78 +42,73 @@ class Payload(BaseModel):
     data: SongPayload
 
 
-async def get_currently_playing(
-    server_url: str, poll_interval: Optional[int] = None
-) -> AsyncGenerator[SongPayload, None]:
-    first: bool = True
-
-    current_websocket: Optional[WebSocketClientProtocol] = None
-
-    async def _poll_on_websocket() -> None:
-        assert poll_interval is not None
-        # if websocket hasnt connected yet, wait until it is ready
-        while current_websocket is None:
-            await sleep(1)
-        logger.debug(f"polling every {poll_interval} seconds")
-        while True:
-            await sleep(poll_interval)
-            logger.debug("polling server for currently-listening...")
-            if current_websocket.open:
-                await current_websocket.send("currently-listening")
-            elif current_websocket.closed:
-                logger.debug("poll task: websocket closed, waiting..")
-
-    poll_task = None
-    async for websocket in connect(server_url):
-        logger.debug("connected to websocket")
-        current_websocket = websocket
-        if poll_interval is not None and poll_task is None:
-            poll_task = asyncio.create_task(_poll_on_websocket())
-        await websocket.send("currently-listening")
-        while True:
-            try:
-                response = await websocket.recv()
-                yield Payload(**json.loads(response)).data
-            except ConnectionClosed:
-                logger.debug("Connection closed, reconnecting")
-                await sleep(1)
-                if poll_task is not None:
-                    try:
-                        poll_task.cancel()
-                        await poll_task  # wait for task to finish, throw exception
-                    except asyncio.CancelledError as e:
-                        logger.debug(f"poll task cancelled: {type(e)} {e}")
-                    poll_task = None
-                break
-
-
 SENTINEL = object()
 
 
 class SocketWithPoll:
     """
-    this polls once every 3 minutes to help prevent rpc failures
+    This polls once every 3 minutes to help prevent rpc failures
     from leaving a stale presence
 
-    since we have to wait 20 seconds between requests,
-    if I spam skip on mpv with a bunch of songs, it ends up taking
+    Since we have to wait 20 seconds between requests to discord,
+    if I spam websocket broadcasts on mpv with a bunch of songs, it ends up taking
     minutes before it catches up to the current song
 
-    this maintains a queue which stores all requests, and
-    only returns the latest one when we are ready to make a discord RPC request
+    This maintains a queue which stores all requests, and
+    only returns the latest one (discarding the rest),
+    when we are ready to make a discord RPC request
     """
 
     def __init__(self, server_url: str, poll_interval: int) -> None:
         self.server_url = server_url
         self.poll_interval = poll_interval
 
-        self._stream = get_currently_playing(server_url, poll_interval)
+        self._stream = self.get_currently_playing()
+        self._items: LifoQueue[Tuple[datetime, SongPayload]] = LifoQueue()
+        self._lock = Lock()
+        self._websocket_task = create_task(self.yield_iterator_to_queue())
 
-        self._items: asyncio.LifoQueue[
-            Tuple[datetime, SongPayload]
-        ] = asyncio.LifoQueue()
-        self._lock = asyncio.Lock()
-        self._websocket_task = asyncio.create_task(self.yield_iterator_to_queue())
+    async def get_currently_playing(
+        self,
+    ) -> AsyncGenerator[SongPayload, None]:
+        current_websocket: Optional[WebSocketClientProtocol] = None
+
+        async def _poll_on_websocket() -> None:
+            assert self.poll_interval is not None
+            # if websocket hasnt connected yet, wait until it is ready
+            while current_websocket is None:
+                await sleep(1)
+            logger.debug(f"polling every {self.poll_interval} seconds")
+            while True:
+                await sleep(self.poll_interval)
+                logger.debug("polling server for currently-listening...")
+                if current_websocket.open:
+                    await current_websocket.send("currently-listening")
+                elif current_websocket.closed:
+                    logger.debug("poll task: websocket closed, waiting..")
+
+        poll_task = None
+        async for websocket in connect(self.server_url):
+            logger.debug("connected to websocket")
+            current_websocket = websocket
+            if self.poll_interval is not None and poll_task is None:
+                poll_task = create_task(_poll_on_websocket())
+            await websocket.send("currently-listening")
+            while True:
+                try:
+                    response = await websocket.recv()
+                    yield Payload(**json.loads(response)).data
+                except ConnectionClosed:
+                    logger.debug("Connection closed, reconnecting")
+                    await sleep(1)
+                    if poll_task is not None:
+                        try:
+                            poll_task.cancel()
+                            await poll_task  # wait for task to finish, throw exception
+                        except CancelledError as e:
+                            logger.debug(f"poll task cancelled: {type(e)} {e}")
+                        poll_task = None
+                    break
 
     async def yield_iterator_to_queue(self) -> None:
         """

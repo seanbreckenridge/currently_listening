@@ -98,7 +98,7 @@ class SocketDataServer(SocketData):
             ).dict(),
         )
         if resp.status_code != 200:
-            logger.error(f"Failed to send data: {resp.status_code} {resp.text}")
+            logger.warning(f"Failed to send data: {resp.status_code} {resp.text}")
 
     def store_file_metadata(self) -> None:
         super().store_file_metadata()
