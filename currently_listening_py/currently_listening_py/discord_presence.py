@@ -66,27 +66,26 @@ async def get_currently_playing(
 
     poll_task = None
     async for websocket in connect(server_url):
+        logger.debug("connected to websocket")
         current_websocket = websocket
         if poll_interval is not None and poll_task is None:
             poll_task = asyncio.create_task(_poll_on_websocket())
-        try:
-            if first:
-                logger.debug("first loop; sending currently-listening message")
-                await websocket.send("currently-listening")
-                first = False
-            response = await websocket.recv()
-            yield Payload(**json.loads(response)).data
-        except ConnectionClosed:
-            logger.debug("Connection closed, reconnecting")
-            await sleep(3)
-            first = True
-            if poll_task is not None:
-                try:
-                    poll_task.cancel()
-                    await poll_task  # wait for task to finish, throw exception
-                except asyncio.CancelledError as e:
-                    logger.debug(f"poll task cancelled: {type(e)} {e}")
-                poll_task = None
+        await websocket.send("currently-listening")
+        while True:
+            try:
+                response = await websocket.recv()
+                yield Payload(**json.loads(response)).data
+            except ConnectionClosed:
+                logger.debug("Connection closed, reconnecting")
+                await sleep(1)
+                if poll_task is not None:
+                    try:
+                        poll_task.cancel()
+                        await poll_task  # wait for task to finish, throw exception
+                    except asyncio.CancelledError as e:
+                        logger.debug(f"poll task cancelled: {type(e)} {e}")
+                    poll_task = None
+                break
 
 
 SENTINEL = object()
