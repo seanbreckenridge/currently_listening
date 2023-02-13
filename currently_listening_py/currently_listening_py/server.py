@@ -43,7 +43,9 @@ class SocketDataManager:
             logger.error(f"Failed to post to {path}: {e}", exc_info=True)
             return
         if resp.status_code != 200:
-            logger.warning(f"Got status code {resp.status_code} from {path}: {resp.text}")
+            logger.warning(
+                f"Got status code {resp.status_code} from {path}: {resp.text}"
+            )
 
     def update_currently_listening(
         self, body: SetListening | ClearListening, is_playing: bool
@@ -205,7 +207,6 @@ def server(
     cache_images: bool,
     debug: bool = True,
 ) -> None:
-
     app = FastAPI()
 
     @app.get("/ping")

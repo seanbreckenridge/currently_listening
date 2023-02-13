@@ -42,7 +42,6 @@ class ClearListening(BaseModel):
 
 
 class SocketDataServer(SocketData):
-
     SEND_EVENTS = set(
         [
             "eof",
