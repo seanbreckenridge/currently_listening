@@ -88,16 +88,19 @@ class SocketDataServer(SocketData):
         assert isinstance(
             is_paused, bool
         ), f"Expected bool, got {type(is_paused)} {is_paused=}"
-        resp = requests.post(
-            f"http://localhost:{self.port}/socket_data",
-            json=SocketBody(
-                events=self.events,
-                filename=f"{self.socket_time}.json",
-                is_playing=not is_paused,
-            ).dict(),
-        )
-        if resp.status_code != 200:
-            logger.warning(f"Failed to send data: {resp.status_code} {resp.text}")
+        try:
+            resp = requests.post(
+                f"http://localhost:{self.port}/socket_data",
+                json=SocketBody(
+                    events=self.events,
+                    filename=f"{self.socket_time}.json",
+                    is_playing=not is_paused,
+                ).dict(),
+            )
+            if resp.status_code != 200:
+                logger.warning(f"Failed to send data: {resp.status_code} {resp.text}")
+        except requests.exceptions.RequestException as e:
+            logger.exception(f"Failed to send data: {e}", exc_info=True)
 
     def store_file_metadata(self) -> None:
         super().store_file_metadata()
