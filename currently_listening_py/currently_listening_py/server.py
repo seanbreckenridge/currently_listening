@@ -217,4 +217,6 @@ def server(
 
     app.include_router(create_router())
 
-    uvicorn.run(app, host="127.0.0.1", port=port, debug=debug)  # type: ignore
+    loglevel = "debug" if debug else "info"
+
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level=loglevel)
