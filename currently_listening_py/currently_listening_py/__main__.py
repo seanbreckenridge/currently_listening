@@ -27,7 +27,34 @@ async def _get_currently_playing(server_url: str, output: str) -> None:
         if output == "text":
             from .discord_presence import Payload
             data = Payload.model_validate(response).data
-            click.echo(data)
+            song = data.song
+            if song is None:
+                click.echo("Nothing playing")
+            else:
+                if song.base64_image is not None:
+                    import os
+                    # if user is using kitty, can display image in terminal
+                    if os.environ.get("TERM") == "xterm-kitty":
+                        import subprocess
+                        import tempfile
+                        import base64
+
+                        with tempfile.NamedTemporaryFile(suffix=".png", delete=True) as f:
+                            # convert back to png
+                            f.write(base64.b64decode(song.base64_image))
+                            f.flush()
+                            subprocess.run(
+                                [
+                                    "kitty",
+                                    "+kitten",
+                                    "icat",
+                                    "--align",
+                                    "left",
+                                    f.name,
+                                ]
+                            )
+                            click.echo()
+                click.echo(f"{song.title} - {song.artist} ({song.album})")
         else:
             click.echo(json.dumps(response, indent=2))
 
