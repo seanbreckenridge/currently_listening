@@ -139,7 +139,7 @@ This is a pretty complex source with lots of moving parts, so to summarize:
                                        ▼
   /*************************************************************************/
   /*              currently_listening_py server (run locally)              */
-  /* uses my_feed/HPI to parse/filter the raw JSON from mpv_history_daemon */
+  /*          parse/filter the raw JSON from mpv_history_daemon            */
   /*    optionally locates/caches/sends a thumbnail of the current song    */
   /*************************************************************************/
                                        |
@@ -161,22 +161,6 @@ To install the python library/server here:
 git clone https://github.com/seanbreckenridge/currently_listening
 cd currently_listening/currently_listening_py
 python3 -m pip install .
-```
-
-However (for now), you also need to setup [my_feed](https://github.com/seanbreckenridge/my_feed), which in turn requires [HPI](https://github.com/seanbreckenridge/HPI). That is used in the `currently_listening_py` server to process the blobs of JSON from `mpv_history_daemon` and filter to music (instead of including movies/TV shows as well). In my `~/.config/my/my/config/feed.py` I have:
-
-```python
-ignore_mpv_prefixes: set[str] = {
-    "/home/sean/Repos/",
-    "/home/sean/Downloads",
-}
-
-allow_mpv_prefixes: set[str] = {
-    "/home/sean/Music/",
-    "/home/data/media/music/",
-    "/home/sean/Downloads/Sort/",
-    "/Users/sean/Music",
-}
 ```
 
 To run, first start the `currently_listening_py` server, e.g.:
@@ -201,7 +185,31 @@ Then, run the `mpv_history_daemon` with the custom `SocketDataServer` class inst
 
 `mpv_history_daemon_restart ~/data/mpv --socket-class-qualname 'currently_listening_py.socket_data.SocketDataServer'`
 
-That still saves all the data to `~/data/mpv`, in addition to `POST`ing the currently playing song to `currently_listening_py server` for further processing
+This still saves all the data to `~/data/mpv`, in addition to `POST`ing the currently playing song to the local `currently_listening_py server` for further processing
+
+## Filtering
+
+By default, this will check the `mpv` metadata for the `artist` and `album` tags and `title` tags before sending to the server. It also prevents livestreams, and paths like `/tmp` or `/dev`.
+
+If you'd like to further customize that to allow/disallow certain paths/extensions, youd need to configure [a matcher](https://github.com/seanbreckenridge/mpv-history-daemon/blob/master/mpv_history_daemon/utils.py)
+
+TODO: add flags to let the user configure this from the command line
+
+Mine is configured [here](https://github.com/seanbreckenridge/my_feed/blob/b5dc3a9970ba38bef5a531bc9e32d42541229be1/src/my_feed/sources/mpv.py#L254-L263). If you wanted to replicate that, you'd have to install [my_feed](https://github.com/seanbreckenridge/my_feed), which in turn requires [HPI](https://github.com/seanbreckenridge/HPI). That is used in the `currently_listening_py` server to process the blobs of JSON from `mpv_history_daemon` and filter to music (instead of including movies/TV shows as well). In my `~/.config/my/my/config/feed.py` I have:
+
+```python
+ignore_mpv_prefixes: set[str] = {
+    "/home/sean/Repos/",
+    "/home/sean/Downloads",
+}
+
+allow_mpv_prefixes: set[str] = {
+    "/home/sean/Music/",
+    "/home/data/media/music/",
+    "/home/sean/Downloads/Sort/",
+    "/Users/sean/Music",
+}
+```
 
 ### `discord-presence`
 

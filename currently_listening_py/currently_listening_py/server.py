@@ -10,21 +10,29 @@ import platformdirs
 from more_itertools import last
 from fastapi import APIRouter
 from mpv_history_daemon.events import _read_event_stream, Media
+from mpv_history_daemon.utils import MediaAllowed, music_parse_metadata_from_blob
 
 from logzero import logger  # type: ignore[import]
 
 from .socket_data import SocketBody, SetListening, ClearListening
 
 
-def _parse_metadata_from_blob(data: Dict[str, Any]) -> Optional[Tuple[str, str, str]]:
-    if "title" not in data or "album" not in data or "artist" not in data:
-        return None
-    title = data["title"]
-    album = data["album"]
-    artist = data["artist"]
-    if title and artist and album:
-        return title, album, artist
-    return None
+# this defines what media is allowed to be sent to the server
+# if this is None, all media is allowed (as long as it has a title, artist and album)
+#
+# by default, it ignores some directories like /dev/ and /tmp/
+# https://github.com/seanbreckenridge/mpv-history-daemon/blob/master/mpv_history_daemon/utils.py
+matcher: Optional[MediaAllowed] = None
+
+# personally, I configure this in my_feed, so I shall just re-use it here
+# https://github.com/seanbreckenridge/my_feed/blob/b5dc3a9970ba38bef5a531bc9e32d42541229be1/src/my_feed/sources/mpv.py#L254-L263
+try:
+    from my_feed.sources.mpv import matcher as my_feed_matcher  # type: ignore
+
+    assert isinstance(my_feed_matcher, MediaAllowed)
+    matcher = my_feed_matcher
+except Exception as e:
+    logger.debug(f"Failed to import my_feed matcher: {e}", exc_info=True)
 
 
 class SocketDataManager:
@@ -146,11 +154,9 @@ class SocketDataManager:
         metadata = m.metadata
         if metadata is None:
             return None
-        return _parse_metadata_from_blob(metadata)
+        return music_parse_metadata_from_blob(metadata)
 
     def process_currently_listening(self, body: SocketBody) -> None:
-        from my_feed.sources.mpv import _media_is_allowed
-
         # allow_if_playing_for=0 means every song is allowed, since
         # current time is always larger than the mpv start time
         data: List[Media] = list(
@@ -162,7 +168,9 @@ class SocketDataManager:
             return
         data.sort(key=lambda x: x.start_time)
         current = last(data)
-        if not _media_is_allowed(current):
+
+        assert matcher is not None
+        if not matcher.is_allowed(current):
             logger.info(f"Media not allowed: {current}")
             return
 
@@ -202,8 +210,11 @@ manager: Optional[SocketDataManager] = None
 def create_manager(
     remote_server: str, server_password: str, cache_images: bool
 ) -> None:
-    global manager
+    global manager, matcher
     manager = SocketDataManager(remote_server, server_password, cache_images)
+    # only create matcher if it doesnt exist/user hasnt specified one
+    if matcher is None:
+        matcher = MediaAllowed()
 
 
 def create_router() -> APIRouter:

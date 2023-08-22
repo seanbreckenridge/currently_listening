@@ -18,13 +18,18 @@ def main(password: str) -> None:
     server_password = password
 
 
-async def _get_currently_playing(server_url: str) -> None:
+async def _get_currently_playing(server_url: str, output: str) -> None:
     from websockets.client import connect
 
     async with connect(server_url) as websocket:
         await websocket.send("currently-listening")
         response = json.loads(await websocket.recv())
-        click.echo(json.dumps(response, indent=2))
+        if output == "text":
+            from .discord_presence import Payload
+            data = Payload.model_validate(response).data
+            click.echo(data)
+        else:
+            click.echo(json.dumps(response, indent=2))
 
 
 @click.option(
@@ -33,9 +38,16 @@ async def _get_currently_playing(server_url: str) -> None:
     help="remote server url",
     show_default=True,
 )
+@click.option(
+    "-o",
+    "--output",
+    type=click.Choice(["json", "text"]),
+    default="json",
+    help="output format",
+)
 @main.command(short_help="print currently playing")
-def print(server_url: str) -> None:
-    asyncio.run(_get_currently_playing(server_url))
+def print(server_url: str, output: str) -> None:
+    asyncio.run(_get_currently_playing(server_url, output))
 
 
 @main.command(short_help="run local server")
