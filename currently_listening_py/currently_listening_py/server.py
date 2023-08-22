@@ -1,6 +1,6 @@
 import os
 import base64
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Tuple, Dict
 from pathlib import Path
 
 import uvicorn  # type: ignore[import]
@@ -14,6 +14,17 @@ from mpv_history_daemon.events import _read_event_stream, Media
 from logzero import logger  # type: ignore[import]
 
 from .socket_data import SocketBody, SetListening, ClearListening
+
+
+def _parse_metadata_from_blob(data: Dict[str, Any]) -> Optional[Tuple[str, str, str]]:
+    if "title" not in data or "album" not in data or "artist" not in data:
+        return None
+    title = data["title"]
+    album = data["album"]
+    artist = data["artist"]
+    if title and artist and album:
+        return title, album, artist
+    return None
 
 
 class SocketDataManager:
@@ -130,8 +141,15 @@ class SocketDataManager:
 
         return None
 
+    @staticmethod
+    def _has_metadata(m: Media) -> Optional[Tuple[str, str, str]]:
+        metadata = m.metadata
+        if metadata is None:
+            return None
+        return _parse_metadata_from_blob(metadata)
+
     def process_currently_listening(self, body: SocketBody) -> None:
-        from my_feed.sources.mpv import _media_is_allowed, _has_metadata
+        from my_feed.sources.mpv import _media_is_allowed
 
         # allow_if_playing_for=0 means every song is allowed, since
         # current time is always larger than the mpv start time
@@ -148,8 +166,8 @@ class SocketDataManager:
             logger.info(f"Media not allowed: {current}")
             return
 
-        metadata = _has_metadata(current)
-        if not metadata:
+        metadata = self.__class__._has_metadata(current)
+        if metadata is None:
             logger.info(f"Media doesnt have enough metadata: {current.metadata}")
             return
 
