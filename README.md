@@ -146,12 +146,12 @@ This is a pretty complex source with lots of moving parts, so to summarize:
                                        ▼
      /********************************************************************/
      /*                   main server (server/main.go)                   */
-     /* recieves updates whenever mpv song changes/mpv is paused/resumed */
+     /* receives updates whenever mpv song changes/mpv is paused/resumed */
      /********************************************************************/
                                        |
                                        ▼
                  /*******************************************/
-                 /* clients recieve broadcasts on websocket */
+                 /* clients receive broadcasts on websocket */
                  /*******************************************/
 ```
 
@@ -297,7 +297,7 @@ If `playing` is `false`, `song` is `null`
 
 ---
 
-Some basic python to connect to the server and recieve broadcasts
+Some basic python to connect to the server and receive broadcasts
 
 ```python
 import os

@@ -112,7 +112,7 @@ class SocketWithPoll:
 
     async def yield_iterator_to_queue(self) -> None:
         """
-        whenever payloads are recieved from the websocket,
+        whenever payloads are received from the websocket,
         asynchronously add them to this queue
         """
 
