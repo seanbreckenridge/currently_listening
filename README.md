@@ -192,9 +192,7 @@ If there is a file named `.nsfw` in the same folder as the currently playing son
 
 By default, this will check the `mpv` metadata for the `artist` and `album` tags and `title` tags before sending to the server. It also prevents livestreams, and paths like `/tmp` or `/dev`.
 
-If you'd like to further customize that to allow/disallow certain paths/extensions, youd need to configure [a matcher](https://github.com/seanbreckenridge/mpv-history-daemon/blob/master/mpv_history_daemon/utils.py)
-
-You can pass a JSON file as `--matcher-config-file` to the `server`, with contents like [`matcher.json`](./client_examples/matcher.json)
+If you'd like to further customize that to allow/disallow certain paths/extensions, you can pass a JSON file as `--matcher-config-file` to the `server`, with contents like [`matcher.json`](./client_examples/matcher.json)
 
 For more info on the options: `python3 -c 'import mpv_history_daemon.utils; help(mpv_history_daemon.utils.MediaAllowed)'`
 
