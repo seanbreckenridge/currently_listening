@@ -19,12 +19,8 @@ class Song(BaseModel):
     album: str | None
     base64_image: str = Field(repr=False)
 
-    def describe(self) -> str:
-        desc = self.title
-        if desc:
-            desc = f"{desc} - {self.artist}"
-        else:
-            desc = self.artist
+    def describe_artist_album(self) -> str:
+        desc = f"{self.artist}"
 
         if self.album:
             desc = f"{desc} ({self.album})"
@@ -206,7 +202,8 @@ async def set_discord_presence_loop(
                 kwargs["large_text"] = csong.album or csong.artist or ""
             logger.debug(
                 await RPC.update(
-                    state=csong.describe(),
+                    details=csong.title,
+                    state=csong.describe_artist_album(),
                     **kwargs,
                 )
             )
