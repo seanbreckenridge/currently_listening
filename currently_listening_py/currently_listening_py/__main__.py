@@ -198,7 +198,7 @@ def _parse_matcher_config_file(
     ), "error computing known_keys, may have been a pydantic API update"
     assert all(
         isinstance(key, str) for key in known_keys
-    ), f"error computing known_keys, may have been a pydantic API update"
+    ), "error computing known_keys, may have been a pydantic API update"
 
     with matcher_config_file.open("r") as f:
         data = json.loads(f.read())
