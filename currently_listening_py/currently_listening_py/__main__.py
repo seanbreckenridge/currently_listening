@@ -114,7 +114,9 @@ def _generate_currently_playing_image(
 </html>"""
 
         imgkit.from_string(
-            template, f.name, options={"format": "jpg", "width": width * 5, "log-level": "warn"}
+            template,
+            f.name,
+            options={"format": "jpg", "width": width * 5, "log-level": "warn"},
         )
         click.echo(f"Saved image to {f.name}", err=True)
 
