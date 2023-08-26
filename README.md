@@ -171,13 +171,12 @@ To run, first start the `currently_listening_py` server, e.g.:
 Usage: currently_listening_py server [OPTIONS]
 
 Options:
-  --server-url TEXT               remote server url  [default:
-                                  http://localhost:3030]
+  --server-url TEXT               remote server url  [default: http://localhost:3030]
   --send-images / --no-send-images
-                                  if available, send base64 encoded images to
-                                  the server. This caches compressed
+                                  if available, send base64 encoded images to the server. This caches compressed
                                   thumbnails to a local cache dir
   --port INTEGER                  local port to host on
+  --matcher-config-file FILE      path to a matcher config file
   --help                          Show this message and exit.
 ```
 
@@ -195,23 +194,11 @@ By default, this will check the `mpv` metadata for the `artist` and `album` tags
 
 If you'd like to further customize that to allow/disallow certain paths/extensions, youd need to configure [a matcher](https://github.com/seanbreckenridge/mpv-history-daemon/blob/master/mpv_history_daemon/utils.py)
 
-TODO: add flags to let the user configure this from the command line
+You can pass a JSON file as `--matcher-config-file` to the `server`, with contents like [`matcher.json`](./client_examples/matcher.json)
 
-Mine is configured [here](https://github.com/seanbreckenridge/my_feed/blob/b5dc3a9970ba38bef5a531bc9e32d42541229be1/src/my_feed/sources/mpv.py#L254-L263). If you wanted to replicate that, you'd have to install [my_feed](https://github.com/seanbreckenridge/my_feed), which in turn requires [HPI](https://github.com/seanbreckenridge/HPI). That is used in the `currently_listening_py` server to process the blobs of JSON from `mpv_history_daemon` and filter to music (instead of including movies/TV shows as well). In my `~/.config/my/my/config/feed.py` I have:
+For more info on the options: `python3 -c 'import mpv_history_daemon.utils; help(mpv_history_daemon.utils.MediaAllowed)'`
 
-```python
-ignore_mpv_prefixes: set[str] = {
-    "/home/sean/Repos/",
-    "/home/sean/Downloads",
-}
-
-allow_mpv_prefixes: set[str] = {
-    "/home/sean/Music/",
-    "/home/data/media/music/",
-    "/home/sean/Downloads/Sort/",
-    "/Users/sean/Music",
-}
-```
+Mine is configured [here](https://github.com/seanbreckenridge/my_feed/blob/b5dc3a9970ba38bef5a531bc9e32d42541229be1/src/my_feed/sources/mpv.py#L254-L263) in [`my_feed`](https://github.com/seanbreckenridge/my_feed)
 
 #### print
 

@@ -1,14 +1,16 @@
 import os
 import json
 import asyncio
-from typing import Union
+from pathlib import Path
+from typing import Union, Optional
+from mpv_history_daemon.utils import MediaAllowed
 
 import click
 
 server_password = None
 
 
-@click.group()
+@click.group(context_settings={"max_content_width": 120})
 @click.option(
     "--password",
     envvar="CURRENTLY_LISTENING_PASSWORD",
@@ -169,6 +171,47 @@ def print(server_url: str, output: str) -> None:
     asyncio.run(_get_currently_playing(server_url, output))
 
 
+def _parse_matcher_config_file(
+    matcher_config_file: Optional[Path],
+) -> Union[MediaAllowed, None]:
+    if matcher_config_file is None:
+        return None
+
+    if not matcher_config_file.exists():
+        raise click.BadParameter(
+            f"Matcher config file {matcher_config_file} does not exist"
+        )
+
+    from pydantic import BaseModel
+
+    class MediaAllowedConfig(BaseModel):
+        allow_prefixes: list[str] = []
+        ignore_prefixes: list[str] = []
+        allow_extensions: list[str] = []
+        ignore_extensions: list[str] = []
+        allow_stream: bool = False
+        strict: bool = False
+
+    with matcher_config_file.open("r") as f:
+        data = json.loads(f.read())
+        # make sure there are no extra keys
+        for key in data.keys():
+            if key not in MediaAllowedConfig.__fields__:
+                raise click.BadParameter(
+                    f"Unknown key {key} in matcher config file {matcher_config_file}"
+                )
+        parsed = MediaAllowedConfig.model_validate(data)
+
+    return MediaAllowed(
+        allow_prefixes=parsed.allow_prefixes,
+        ignore_prefixes=parsed.ignore_prefixes,
+        allow_extensions=parsed.allow_extensions,
+        ignore_extensions=parsed.ignore_extensions,
+        allow_stream=parsed.allow_stream,
+        strict=parsed.strict,
+    )
+
+
 @main.command(short_help="run local server")
 @click.option(
     "--server-url",
@@ -183,17 +226,33 @@ def print(server_url: str, output: str) -> None:
     help="if available, send base64 encoded images to the server. This caches compressed thumbnails to a local cache dir",
 )
 @click.option("--port", default=3040, help="local port to host on")
-def server(server_url: str, port: int, send_images: bool) -> None:
+@click.option(
+    "--matcher-config-file",
+    default=None,
+    help="path to a matcher config file",
+    type=click.Path(dir_okay=False, path_type=Path),
+)
+def server(
+    server_url: str,
+    port: int,
+    send_images: bool,
+    matcher_config_file: Optional[Path],
+) -> None:
     assert (
         server_password is not None
     ), "Set password with `currently_listening_py --password '...' server` or set the CURRENTLY_LISTENING_PASSWORD environment variable"
     from .server import server as run_server
+
+    matcher_config: Optional[MediaAllowed] = _parse_matcher_config_file(
+        matcher_config_file
+    )
 
     run_server(
         remote_server=server_url,
         port=port,
         server_password=server_password,
         cache_images=send_images,
+        use_matcher=matcher_config,
     )
 
 

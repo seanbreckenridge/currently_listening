@@ -22,7 +22,7 @@ from .socket_data import SocketBody, SetListening, ClearListening
 #
 # by default, it ignores some directories like /dev/ and /tmp/
 # https://github.com/seanbreckenridge/mpv-history-daemon/blob/master/mpv_history_daemon/utils.py
-matcher: Optional[MediaAllowed] = None
+GLOBAL_MATCHER: Optional[MediaAllowed] = None
 
 # personally, I configure this in my_feed, so I shall just re-use it here
 # https://github.com/seanbreckenridge/my_feed/blob/b5dc3a9970ba38bef5a531bc9e32d42541229be1/src/my_feed/sources/mpv.py#L254-L263
@@ -30,14 +30,20 @@ try:
     from my_feed.sources.mpv import matcher as my_feed_matcher  # type: ignore
 
     assert isinstance(my_feed_matcher, MediaAllowed)
-    matcher = my_feed_matcher
+    assert my_feed_matcher._logger is not None
+    GLOBAL_MATCHER = my_feed_matcher
+    del my_feed_matcher
 except Exception as e:
-    logger.debug(f"Failed to import my_feed matcher: {e}", exc_info=True)
+    logger.debug(f"Failed to import custom my_feed matcher: {e}", exc_info=False)
 
 
 class SocketDataManager:
     def __init__(
-        self, remote_server: str, server_password: str, cache_images: bool
+        self,
+        remote_server: str,
+        server_password: str,
+        cache_images: bool,
+        matcher: MediaAllowed,
     ) -> None:
         self.currently_listening: Optional[SetListening] = None
         self.is_playing = False
@@ -47,6 +53,7 @@ class SocketDataManager:
         self.cache_image_dir = Path(
             platformdirs.user_cache_dir(appname="currently-listening-py")
         )
+        self.matcher = matcher
 
     def _post_to_server(
         self, path: str, body: SetListening | ClearListening | None = None
@@ -230,8 +237,7 @@ class SocketDataManager:
         data.sort(key=lambda x: x.start_time)
         current = last(data)
 
-        assert matcher is not None
-        if not matcher.is_allowed(current):
+        if not self.matcher.is_allowed(current):
             logger.info(f"Media not allowed: {current}")
             return
 
@@ -268,14 +274,30 @@ class SocketDataManager:
 manager: Optional[SocketDataManager] = None
 
 
-def create_manager(
-    remote_server: str, server_password: str, cache_images: bool
+def setup_config(
+    remote_server: str,
+    server_password: str,
+    cache_images: bool,
+    use_matcher: Optional[MediaAllowed],
 ) -> None:
-    global manager, matcher
-    manager = SocketDataManager(remote_server, server_password, cache_images)
-    # only create matcher if it doesnt exist/user hasnt specified one
-    if matcher is None:
+    global manager
+
+    matcher: Optional[MediaAllowed]
+    if use_matcher is not None:
+        matcher = use_matcher
+    elif GLOBAL_MATCHER is not None:
+        matcher = GLOBAL_MATCHER
+    else:
         matcher = MediaAllowed()
+
+    # if matcher doesnt have a logger, set it to the default logger here
+    # only create matcher if it doesnt exist/user hasnt specified one
+    if matcher._logger is None:
+        matcher._logger = logger
+
+    logger.debug(f"Using matcher: {matcher}")
+
+    manager = SocketDataManager(remote_server, server_password, cache_images, matcher)
 
 
 def create_router() -> APIRouter:
@@ -295,6 +317,7 @@ def server(
     remote_server: str,
     server_password: str,
     cache_images: bool,
+    use_matcher: Optional[MediaAllowed] = None,
     debug: bool = True,
 ) -> None:
     app = FastAPI()
@@ -303,7 +326,7 @@ def server(
     def _ping() -> str:
         return "pong"
 
-    create_manager(remote_server, server_password, cache_images)
+    setup_config(remote_server, server_password, cache_images, use_matcher)
 
     app.include_router(create_router())
 

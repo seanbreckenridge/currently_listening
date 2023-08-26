@@ -1,0 +1,8 @@
+{
+  "allow_prefixes": ["/home/username/Music/"],
+  "ignore_prefixes": ["/home/username/Documents/", "/home/username/Downloads/"],
+  "allow_extensions": [".mp3", ".flac", ".ogg", ".wav"],
+  "ignore_extensions": [".jpg", ".png", ".gif", ".bmp"],
+  "allow_stream": false,
+  "strict": false
+}
