@@ -3,7 +3,7 @@ logzero
 fastapi>=0.92.0
 uvicorn>=0.21.0
 more_itertools
-mpv_history_daemon
+mpv_history_daemon>=0.2.3
 pypresence
 websockets
 Pillow
