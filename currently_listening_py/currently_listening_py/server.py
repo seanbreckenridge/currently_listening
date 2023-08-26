@@ -51,7 +51,7 @@ class SocketDataManager:
     def _post_to_server(
         self, path: str, body: SetListening | ClearListening | None = None
     ) -> None:
-        data: dict[str, Any] = body.dict() if body is not None else {}
+        data: Dict[str, Any] = body.model_dump() if body is not None else {}
         try:
             resp = requests.post(
                 f"{self.remote_server_url}/{path}",
@@ -151,10 +151,7 @@ class SocketDataManager:
 
     @staticmethod
     def _has_metadata(m: Media) -> Optional[Tuple[str, str, str]]:
-        metadata = m.metadata
-        if metadata is None:
-            return None
-        return music_parse_metadata_from_blob(metadata)
+        return music_parse_metadata_from_blob(m.metadata)
 
     def process_currently_listening(self, body: SocketBody) -> None:
         # allow_if_playing_for=0 means every song is allowed, since

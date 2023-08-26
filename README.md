@@ -31,7 +31,7 @@ I also use this to set my discord presence:
 
 ## Install
 
-Requires `python3.9+` (for local data processing/clients) and `go` (for the remote websocket server)
+Requires `python3.10+` (for local data processing/clients) and `go` (for the remote websocket server)
 
 ### `server`
 
@@ -210,6 +210,28 @@ allow_mpv_prefixes: set[str] = {
     "/Users/sean/Music",
 }
 ```
+
+#### print
+
+The `currently_listening_py` command also includes a `print` command, which can print the currently playing song as text, JSON or an image:
+
+```
+$ currently_listening_py print --server-url 'wss://sean.fish/currently_listening/ws' -o text
+Main Theme - Amynedd (16-Bit Adventure)
+```
+
+It saves the image to `~/.cache/currently-listening-py/currently_listening.jpg`.
+
+I use [kitty](https://sw.kovidgoyal.net/kitty/), which means I can print images in the terminal, so I have a shell function like:
+
+```bash
+curplaying() {
+    [[ "$TERM" != "xterm-kitty" ]] && return 1
+    python3 -m currently_listening_py print --server-url 'wss://sean.fish/currently_listening/ws' -o image 2> /dev/null && kitty icat --align=left ~/.cache/currently-listening-py/currently_listening.jpg
+}
+```
+
+![demo terminal image](https://github.com/seanbreckenridge/currently_listening/blob/main/.github/interminal.png?raw=true)
 
 ### `discord-presence`
 

@@ -1,5 +1,7 @@
+import os
 import json
 import asyncio
+from typing import Union
 
 import click
 
@@ -18,49 +20,135 @@ def main(password: str) -> None:
     server_password = password
 
 
+def _generate_currently_playing_image(
+    album: Union[str, None], artist: str, title: str, base64_image: str
+) -> None:
+    import base64
+
+    from pathlib import Path
+    from tempfile import NamedTemporaryFile
+
+    from PIL import Image  # type: ignore[import]
+    import imgkit  # type: ignore[import]
+
+    # create a box with the album art, sort of like
+    #
+    # the background color should match your terminal, you can
+    # set it with the BACKGROUND_COLOR environment variable
+
+    ##################################
+    #         # Song                 #
+    #  IMAGE  # Artist               #
+    #         # Album                #
+    ##################################
+
+    cache_dir = Path().home() / ".cache" / "currently-listening-py"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    cache_image = cache_dir / "currently_listening.jpg"
+
+    # this is done with wkhtmltoimage, which creates a flexbox with the image on the left and the text on the right
+    with cache_image.open("wb") as f:
+        with NamedTemporaryFile(suffix=".jpg") as tf:
+            tf.write(base64.b64decode(base64_image))
+            tf.flush()
+            img = Image.open(tf.name)
+            width, height = img.size
+
+        background_color = os.environ.get("BACKGROUND_COLOR", "#282828")
+        text_color = os.environ.get("TEXT_COLOR", "#ebdbb2")
+
+        template = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        html {{
+            height: {height}px;
+            width: {width * 5}px;
+            background-color: {background_color};
+            color: {text_color};
+        }}
+        body {{
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: row;
+            justify-content: left;
+            align-items: center;
+            height: {height}px;
+            width: {width * 5}px;
+        }}
+        .image {{
+            height: {height}px;
+            width: {width}px;
+            background-image: url('data:image/jpg;base64,{base64_image}');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }}
+        .text {{
+            /* fit the text to the remaining space */
+            width: {width * 4}px;
+            padding-left: 5px;
+            flex: 1;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+            font-family: sans-serif;
+            margin-top: auto;
+            margin-bottom: auto;
+        }}
+        </style>
+</head>
+<body>
+    <div class="image"></div>
+    <div class="text">
+        <div>{title}</div>
+        <div>{artist}</div>
+        {"<div>" + album + "</div>" if album is not None else ""}
+    </div>
+</body>
+</html>"""
+
+        imgkit.from_string(
+            template,
+            f.name,
+            options={"format": "jpg", "width": width * 5, "log-level": "warn"},
+        )
+        click.echo(f"Saved image to {f.name}", err=True)
+
+
 async def _get_currently_playing(server_url: str, output: str) -> None:
     from websockets.client import connect
 
     async with connect(server_url) as websocket:
         await websocket.send("currently-listening")
         response = json.loads(await websocket.recv())
-        if output == "text":
-            from .discord_presence import Payload
 
-            data = Payload.model_validate(response).data
-            song = data.song
-            if song is None:
-                click.echo("Nothing playing")
-            else:
-                if song.base64_image is not None:
-                    import os
-
-                    # if user is using kitty, can display image in terminal
-                    if os.environ.get("TERM") == "xterm-kitty":
-                        import subprocess
-                        import tempfile
-                        import base64
-
-                        with tempfile.NamedTemporaryFile(
-                            suffix=".png", delete=True
-                        ) as f:
-                            # convert back to png
-                            f.write(base64.b64decode(song.base64_image))
-                            f.flush()
-                            subprocess.run(
-                                [
-                                    "kitty",
-                                    "+kitten",
-                                    "icat",
-                                    "--align",
-                                    "left",
-                                    f.name,
-                                ]
-                            )
-                            click.echo()
-                click.echo(f"{song.title} - {song.artist} ({song.album})")
-        else:
+        if output == "json":
             click.echo(json.dumps(response, indent=2))
+            return
+
+        from .discord_presence import Payload
+
+        data = Payload.model_validate(response).data
+        song = data.song
+        if song is None:
+            click.echo("Nothing playing", err=True)
+            exit(1)
+        else:
+            if output == "image" and song.base64_image is not None:
+                return _generate_currently_playing_image(
+                    song.album, song.artist, song.title, song.base64_image
+                )
+
+            if song.album is not None:
+                click.echo(f"{song.title} - {song.artist} ({song.album})")
+            else:
+                click.echo(f"{song.title} - {song.artist}")
 
 
 @click.option(
@@ -72,7 +160,7 @@ async def _get_currently_playing(server_url: str, output: str) -> None:
 @click.option(
     "-o",
     "--output",
-    type=click.Choice(["json", "text"]),
+    type=click.Choice(["json", "text", "image"]),
     default="json",
     help="output format",
 )
