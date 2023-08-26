@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, List
 from mpv_history_daemon.utils import MediaAllowed
 
 import click
@@ -192,11 +192,19 @@ def _parse_matcher_config_file(
         allow_stream: bool = False
         strict: bool = False
 
+    known_keys: List[str] = list(MediaAllowedConfig.__fields__.keys())  # type: ignore
+    assert isinstance(
+        known_keys, list
+    ), "error computing known_keys, may have been a pydantic API update"
+    assert all(
+        isinstance(key, str) for key in known_keys
+    ), f"error computing known_keys, may have been a pydantic API update"
+
     with matcher_config_file.open("r") as f:
         data = json.loads(f.read())
         # make sure there are no extra keys
         for key in data.keys():
-            if key not in MediaAllowedConfig.__fields__:
+            if key not in known_keys:
                 raise click.BadParameter(
                     f"Unknown key {key} in matcher config file {matcher_config_file}"
                 )
