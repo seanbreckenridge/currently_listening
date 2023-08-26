@@ -145,7 +145,10 @@ async def _get_currently_playing(server_url: str, output: str) -> None:
                     song.album, song.artist, song.title, song.base64_image
                 )
 
-            click.echo(f"{song.title} - {song.artist} ({song.album})")
+            if song.album is not None:
+                click.echo(f"{song.title} - {song.artist} ({song.album})")
+            else:
+                click.echo(f"{song.title} - {song.artist}")
 
 
 @click.option(
