@@ -109,38 +109,102 @@ class SocketDataManager:
         return None
 
     @classmethod
-    def cache_compressed_cover_art(cls, image: Path, save_to: Path) -> Path:
-        from PIL import Image  # type: ignore[import]
+    def cache_compressed_cover_art(
+        cls, image: Path, save_to: Path, blur_image: bool
+    ) -> Path:
+        from PIL import Image, ImageFilter  # type: ignore[import]
 
         with open(image, "rb") as f:
             img = Image.open(f)
             img.thumbnail((100, 100))
+            if blur_image:
+                img = img.filter(ImageFilter.GaussianBlur(radius=5))
             with open(save_to, "wb") as tf:
                 img.save(tf, "JPEG")
             logger.debug(f"Saved compressed cover art to {save_to}")
         return save_to
 
     def get_compressed_cover_art(self, media: Media) -> Optional[str]:
+        """
+        A bit complicated but when is caching not
+
+        Search for cover art in the same directory as the media,
+        and cache it to a directory in the users cache directory
+
+        If the media file is marked as nsfw (has a .nsfw file in the same directory),
+        blur the image before sending it to the server
+
+        If the cache is older than the source, re-cache
+        If the cache is older than the nsfw marker, re-cache
+        """
         cover_art = self.get_cover_art(media)
         if cover_art is None:
             logger.debug(f"No cover art found for {media.path} using {self.COVERS=}")
             return None
+
+        # check if Ive marked this album having nsfw album art (incase I wouldnt want random nsfw images in discord presence/on my website)
+        is_nsfw_marker: Path = cover_art.parent.joinpath(".nsfw")
+        nsfw_mod_time: Optional[float] = (
+            is_nsfw_marker.stat().st_mtime if is_nsfw_marker.exists() else None
+        )
+        if nsfw_mod_time is not None:
+            logger.debug(f"nsfw modification time {nsfw_mod_time=}")
+        else:
+            logger.debug(f"No nsfw marker ({is_nsfw_marker}) found for {cover_art=}")
+
         # exclude first part of path '/'
         # and last part of path (song filename)
         cache_dir_target = self.cache_image_dir / os.path.join(
             *Path(media.path).absolute().parts[1:-1]
         )
         logger.debug(f"Found source art: {cover_art=}")
-        cache_target = (cache_dir_target / cover_art.name).with_suffix(".jpg")
-        if not cache_target.exists():
+        cache_target: Path = (cache_dir_target / cover_art.name).with_suffix(".jpg")
+        cache_target_exists: bool = cache_target.exists()
+        cache_target_mod_time: Optional[float] = (
+            cache_target.stat().st_mtime if cache_target_exists else None
+        )
+
+        # if the nsfw marker is newer than the cache, re-cache (I might have just added the marker)
+        nsfw_force_recompute = (
+            nsfw_mod_time is not None
+            and cache_target_mod_time is not None
+            and nsfw_mod_time > cache_target_mod_time
+        )
+        if nsfw_force_recompute and cache_target_exists:
+            logger.debug("nsfw marker is newer than cache, refreshing image as blurred")
+
+        # check if cache target is older than the source
+        # if so, re-cache
+        cache_target_expired = False
+        if cache_target_exists:
+            cache_target_expired = (
+                cache_target.stat().st_mtime < cover_art.stat().st_mtime
+            )
+
+        if cache_target_expired:
+            logger.debug(
+                f"Cache target {cache_target=} is older than source {cover_art=}, refreshing"
+            )
+
+        if cache_target_expired or nsfw_force_recompute:
+            logger.debug(f"Removing file {cache_target=}...")
+            cache_target.unlink()
+            cache_target_exists = False
+
+        if not cache_target_exists:
             logger.debug(f"No cached cover art found: {cache_target=}")
             cache_target.parent.mkdir(parents=True, exist_ok=True)
             try:
-                self.cache_compressed_cover_art(cover_art, save_to=cache_target)
+                self.cache_compressed_cover_art(
+                    cover_art,
+                    save_to=cache_target,
+                    blur_image=nsfw_mod_time is not None,
+                )
             except Exception as e:
                 logger.error(f"Failed to cache cover art: {e}", exc_info=True)
                 return None
 
+        # do a re-check here for exists incase the above failed
         if cache_target.exists():
             logger.debug(f"Found cached cover art: {cache_target=}")
             # load image as base64

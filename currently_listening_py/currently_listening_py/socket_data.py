@@ -63,15 +63,21 @@ class SocketDataServer(SocketData):
         self._started = False
         super().__init__(socket, socket_loc, data_dir, write_period)
 
+    # intercept any events that mpv-history-daemon writes to the in-memory dict
     def nevent(self, event_name: str, event_data: Optional[Any] = None) -> None:
         super().nevent(event_name, event_data)
         if not self._started:
             return
-        # if eof/paused/resumed
-        if event_name in self.SEND_EVENTS:
-            self._send_data()
-        if event_name == "final-write":
-            self._send_data(is_final=True)
+        try:
+            # if eof/paused/resumed
+            if event_name in self.SEND_EVENTS:
+                self._send_data()
+            if event_name == "final-write":
+                self._send_data(is_final=True)
+        # intentionally catching all exceptions, since we don't want to crash the mpv daemon,
+        # sending data to the server is less important than saving it
+        except Exception as e:
+            logger.exception(f"Failed to send data: {e}", exc_info=True)
 
     def _send_data(self, is_final: bool = False) -> None:
         is_paused: Any
@@ -95,7 +101,7 @@ class SocketDataServer(SocketData):
                     events=self.events,
                     filename=f"{self.socket_time}.json",
                     is_playing=not is_paused,
-                ).dict(),
+                ).model_dump(),
             )
             if resp.status_code != 200:
                 logger.warning(f"Failed to send data: {resp.status_code} {resp.text}")

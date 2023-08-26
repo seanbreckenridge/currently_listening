@@ -187,6 +187,8 @@ Then, run the `mpv_history_daemon` with the custom `SocketDataServer` class inst
 
 This still saves all the data to `~/data/mpv`, in addition to `POST`ing the currently playing song to the local `currently_listening_py server` for further processing
 
+If there is a file named `.nsfw` in the same folder as the currently playing song, it will blur the cached thumbnail before sending it to the server
+
 ## Filtering
 
 By default, this will check the `mpv` metadata for the `artist` and `album` tags and `title` tags before sending to the server. It also prevents livestreams, and paths like `/tmp` or `/dev`.

@@ -1,6 +1,6 @@
 click>=8.0
 logzero
-fastapi>=0.92.0
+fastapi>=0.101.1
 uvicorn>=0.21.0
 more_itertools
 mpv_history_daemon>=0.2.3
