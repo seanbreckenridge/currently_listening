@@ -202,12 +202,12 @@ func main() {
 			},
 			&cli.IntFlag{
 				Name:  "poll-interval",
-				Value: 30,
+				Value: 90,
 				Usage: "Interval in seconds to poll ListenBrainz for currently playing song",
 			},
 			&cli.IntFlag{
 				Name:  "poll-interval-when-playing",
-				Value: 5,
+				Value: 15,
 				Usage: "Interval in seconds to poll ListenBrainz for currently playing song, when a song is playing",
 			},
 			&cli.BoolFlag{

@@ -99,8 +99,8 @@ GLOBAL OPTIONS:
    --password value                    Password to authenticate setting the currently playing song [$CURRENTLY_LISTENING_PASSWORD]
    --listenbrainz-username value       ListenBrainz username [$LISTENBRAINZ_USERNAME]
    --server-url value                  URL of the server to send the currently playing song to (default: "http://localhost:3030")
-   --poll-interval value               Interval in seconds to poll ListenBrainz for currently playing song (default: 30)
-   --poll-interval-when-playing value  Interval in seconds to poll ListenBrainz for currently playing song, when a song is playing (default: 5)
+   --poll-interval value               Interval in seconds to poll ListenBrainz for currently playing song (default: 90)
+   --poll-interval-when-playing value  Interval in seconds to poll ListenBrainz for currently playing song, when a song is playing (default: 15)
    --debug                             Enable debug logging (default: false)
    --help, -h                          show help
 ```
