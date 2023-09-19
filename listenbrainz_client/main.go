@@ -197,7 +197,7 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:  "server-url",
-				Value: "http://localhost:3030",
+				Value: "http://127.0.0.1:3030",
 				Usage: "URL of the server to send the currently playing song to",
 			},
 			&cli.IntFlag{

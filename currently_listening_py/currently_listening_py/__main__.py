@@ -155,7 +155,7 @@ async def _get_currently_playing(server_url: str, output: str) -> None:
 
 @click.option(
     "--server-url",
-    default="ws://localhost:3030/ws",
+    default="ws://127.0.0.1:3030/ws",
     help="remote server url",
     show_default=True,
 )
@@ -223,7 +223,7 @@ def _parse_matcher_config_file(
 @main.command(short_help="run local server")
 @click.option(
     "--server-url",
-    default="http://localhost:3030",
+    default="http://127.0.0.1:3030",
     help="remote server url",
     show_default=True,
 )
@@ -267,13 +267,13 @@ def server(
 @main.command(short_help="set currently playing on discord")
 @click.option(
     "--server-url",
-    default="ws://localhost:3030/ws",
+    default="ws://127.0.0.1:3030/ws",
     help="remote server url",
     show_default=True,
 )
 @click.option(
     "--image-url",
-    default="http://localhost:3030/currently-listening-image",
+    default="http://127.0.0.1:3030/currently-listening-image",
     help="endpoint for currently playing image url",
     show_default=True,
 )

@@ -98,7 +98,7 @@ Run `listenbrainz_client_poll`:
 GLOBAL OPTIONS:
    --password value                    Password to authenticate setting the currently playing song [$CURRENTLY_LISTENING_PASSWORD]
    --listenbrainz-username value       ListenBrainz username [$LISTENBRAINZ_USERNAME]
-   --server-url value                  URL of the server to send the currently playing song to (default: "http://localhost:3030")
+   --server-url value                  URL of the server to send the currently playing song to (default: "http://127.0.0.1:3030")
    --poll-interval value               Interval in seconds to poll ListenBrainz for currently playing song (default: 90)
    --poll-interval-when-playing value  Interval in seconds to poll ListenBrainz for currently playing song, when a song is playing (default: 15)
    --debug                             Enable debug logging (default: false)
@@ -171,7 +171,7 @@ To run, first start the `currently_listening_py` server, e.g.:
 Usage: currently_listening_py server [OPTIONS]
 
 Options:
-  --server-url TEXT               remote server url  [default: http://localhost:3030]
+  --server-url TEXT               remote server url  [default: http://127.0.0.1:3030]
   --send-images / --no-send-images
                                   if available, send base64 encoded images to the server. This caches compressed
                                   thumbnails to a local cache dir
@@ -233,9 +233,9 @@ Usage: currently_listening_py discord-presence [OPTIONS]
 
 Options:
   --server-url TEXT               remote server url  [default:
-                                  ws://localhost:3030/ws]
+                                  ws://127.0.0.1:3030/ws]
   --image-url TEXT                endpoint for currently playing image url
-                                  [default: http://localhost:3030/currently-
+                                  [default: http://127.0.0.1:3030/currently-
                                   listening-image]
   -d, --discord-client-id TEXT    Discord client id for setting my presence
                                   [env var: PRESENCE_CLIENT_ID]
@@ -331,13 +331,13 @@ async def _websocket_loop(server_url: str) -> None:
             continue
 
 
-asyncio.run(_websocket_loop(os.environ.get("WEBSOCKET_URL", "ws://localhost:3030/ws")))
+asyncio.run(_websocket_loop(os.environ.get("WEBSOCKET_URL", "ws://127.0.0.1:3030/ws")))
 ```
 
 or javascript:
 
 ```javascript
-const websocketUrl = Deno.env.get("WEBSOCKET_URL") || "ws://localhost:3030/ws";
+const websocketUrl = Deno.env.get("WEBSOCKET_URL") || "ws://127.0.0.1:3030/ws";
 
 function connect() {
   let ws = new WebSocket(websocketUrl);

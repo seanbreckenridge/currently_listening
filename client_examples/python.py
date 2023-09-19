@@ -20,4 +20,4 @@ async def _websocket_loop(server_url: str) -> None:
             continue
 
 
-asyncio.run(_websocket_loop(os.environ.get("WEBSOCKET_URL", "ws://localhost:3030/ws")))
+asyncio.run(_websocket_loop(os.environ.get("WEBSOCKET_URL", "ws://127.0.0.1:3030/ws")))

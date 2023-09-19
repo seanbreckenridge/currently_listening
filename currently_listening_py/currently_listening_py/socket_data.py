@@ -96,7 +96,7 @@ class SocketDataServer(SocketData):
         ), f"Expected bool, got {type(is_paused)} {is_paused=}"
         try:
             resp = requests.post(
-                f"http://localhost:{self.port}/socket_data",
+                f"http://127.0.0.1:{self.port}/socket_data",
                 json=SocketBody(
                     events=self.events,
                     filename=f"{self.socket_time}.json",
