@@ -271,7 +271,7 @@ The two relevant endpoints (which both require `password`: `CURRENTLY_LISTENING_
 }
 ```
 
-If a `base64_image` is provided by the client, its sent back as part of the response. This also includes an image endpoint `/currently-listening-image/`, which returns the image for the song thats currently playing, if `base64_image` was set.
+If a `base64_image` is provided by the client, its sent back as part of the response. This also includes an image endpoint `/currently-listening-image/`, which returns the image for the song that's currently playing, if `base64_image` was set.
 
 If requesting this from something which might cache this image, can add additional random text as part of the path, e.g.,: `/currently-listening-image/JkFJQ0hJTkdfSU1BR0U9FgF49kKFLASMRIEJKMW2340`
 

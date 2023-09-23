@@ -24,7 +24,7 @@ from .socket_data import SocketBody, SetListening, ClearListening
 # https://github.com/seanbreckenridge/mpv-history-daemon/blob/master/mpv_history_daemon/utils.py
 GLOBAL_MATCHER: Optional[MediaAllowed] = None
 
-# personally, I configure this in my_feed, so I shall just re-use it here
+# personally, I configure this in my_feed, so I shall just reuse it here
 # https://github.com/seanbreckenridge/my_feed/blob/b5dc3a9970ba38bef5a531bc9e32d42541229be1/src/my_feed/sources/mpv.py#L254-L263
 try:
     from my_feed.sources.mpv import matcher as my_feed_matcher  # type: ignore
@@ -149,7 +149,7 @@ class SocketDataManager:
             logger.debug(f"No cover art found for {media.path} using {self.COVERS=}")
             return None
 
-        # check if Ive marked this album having nsfw album art (incase I wouldnt want random nsfw images in discord presence/on my website)
+        # check if Ive marked this album having nsfw album art (in case I wouldn't want random nsfw images in discord presence/on my website)
         is_nsfw_marker: Path = cover_art.parent.joinpath(".nsfw")
         nsfw_mod_time: Optional[float] = (
             is_nsfw_marker.stat().st_mtime if is_nsfw_marker.exists() else None
@@ -211,7 +211,7 @@ class SocketDataManager:
                 logger.error(f"Failed to cache cover art: {e}", exc_info=True)
                 return None
 
-        # do a re-check here for exists incase the above failed
+        # do a re-check here for exists in case the above failed
         if cache_target.exists():
             logger.debug(f"Found cached cover art: {cache_target=}")
             # load image as base64
@@ -243,7 +243,7 @@ class SocketDataManager:
 
         metadata = self.__class__._has_metadata(current)
         if metadata is None:
-            logger.info(f"Media doesnt have enough metadata: {current.metadata}")
+            logger.info(f"Media doesn't have enough metadata: {current.metadata}")
             return
 
         title, album, artist = metadata
@@ -290,8 +290,8 @@ def setup_config(
     else:
         matcher = MediaAllowed()
 
-    # if matcher doesnt have a logger, set it to the default logger here
-    # only create matcher if it doesnt exist/user hasnt specified one
+    # if matcher doesn't have a logger, set it to the default logger here
+    # only create matcher if it doesn't exist/user hasn't specified one
     if matcher._logger is None:
         matcher._logger = logger
 

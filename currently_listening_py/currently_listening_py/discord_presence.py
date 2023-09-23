@@ -71,7 +71,7 @@ class SocketWithPoll:
 
         async def _poll_on_websocket() -> None:
             assert self.poll_interval is not None
-            # if websocket hasnt connected yet, wait until it is ready
+            # if websocket hasn't connected yet, wait until it is ready
             while current_websocket is None:
                 await sleep(1)
             logger.debug(f"polling every {self.poll_interval} seconds")
@@ -132,7 +132,7 @@ class SocketWithPoll:
             return SENTINEL
         else:
             # do this in a lock so that new items from the websocket
-            # arent added while we are clearing the queue
+            # aren't added while we are clearing the queue
             async with self._lock:
                 # if not empty, we only want the latest item, not any others that may have
                 # accumulated while we were waiting for discord rate limit
