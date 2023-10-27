@@ -1,4 +1,5 @@
 /main
+.mypy_cache
 /data
 *.pdf
 # Created by https://www.toptal.com/developers/gitignore/api/go
