@@ -71,9 +71,12 @@ func server(port int, password string, staleAfter int64) {
 					currentTimeStamp = nil
 					isCurrentlyPlaying = false
 					lastUpdated = 0 // reset to 'unset', so we don't clear it again
-					// send to all clients
+					// broadcast to all clients
 					if cur, err := currentlyListeningJSON(); err == nil {
-						m.Broadcast(cur)
+						err := m.Broadcast(cur)
+						if err != nil {
+							fmt.Printf("Error broadcasting currently listening song: %s\n", err.Error())
+						}
 					} else {
 						fmt.Println("Error marshalling currently listening song to JSON")
 					}
@@ -167,7 +170,10 @@ func server(port int, password string, staleAfter int64) {
 
 		if sendBody, err := currentlyListeningJSON(); err == nil {
 			// broadcast to all clients
-			m.Broadcast(sendBody)
+			err := m.Broadcast(sendBody)
+			if err != nil {
+				fmt.Printf("Error broadcasting currently listening song: %s\n", err.Error())
+			}
 			// respond to POST request
 			imgDesc := cur.Base64Image
 			if len(imgDesc) > 10 {
@@ -214,7 +220,10 @@ func server(port int, password string, staleAfter int64) {
 
 		if sendBody, err := currentlyListeningJSON(); err == nil {
 			// broadcast to all clients
-			m.Broadcast(sendBody)
+			err := m.Broadcast(sendBody)
+			if err != nil {
+				fmt.Printf("Error broadcasting currently listening song: %s\n", err.Error())
+			}
 			// respond to POST request
 			msg := "Unset currently listening song"
 			fmt.Println(msg)
