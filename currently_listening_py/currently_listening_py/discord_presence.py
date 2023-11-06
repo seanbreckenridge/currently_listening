@@ -13,6 +13,16 @@ from pydantic import BaseModel, Field
 from pypresence import AioPresence  # type: ignore[import]
 
 
+def _clamp_string(string: str, min_len: int = 2, max_len: int = 128) -> str:
+    # pad with spaces
+    if len(string) < min_len:
+        string = string + " " * (min_len - len(string))
+    # truncate
+    if len(string) > max_len:
+        string = string[:max_len]
+    return string
+
+
 class Song(BaseModel):
     title: str
     artist: str
@@ -199,11 +209,11 @@ async def set_discord_presence_loop(
                 imgurl = f"{image_url}/{hashlib.md5(b64.encode()).hexdigest()}"
                 logger.debug(f"image url: {imgurl}")
                 kwargs["large_image"] = imgurl
-                kwargs["large_text"] = csong.album or csong.artist or ""
+                kwargs["large_text"] = csong.album or csong.artist or "  "
             logger.debug(
                 await RPC.update(
-                    details=csong.title,
-                    state=csong.describe_artist_album(),
+                    details=_clamp_string(csong.title),
+                    state=_clamp_string(csong.describe_artist_album()),
                     **kwargs,
                 )
             )
